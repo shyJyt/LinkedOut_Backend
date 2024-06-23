@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from NoBC.status_code import *
+from status_code import *
 
 
 def response(code=SUCCESS, msg='', data=None, error=False):
