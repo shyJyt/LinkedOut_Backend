@@ -2,8 +2,8 @@ from functools import wraps
 from django.http import JsonResponse
 from status_code import *
 from user.models import User
-from utils.Response import response
-from utils.Token import get_value
+from utils.response import response
+from utils.token import get_value
 
 
 def allowed_methods(methods):
@@ -35,7 +35,6 @@ def login_required(view_func):
     """
     装饰器，用于限制视图函数只能在登录状态下访问。
     """
-
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         # 取出token,查找是否有此用户,token放在HTTP请求的header中
@@ -57,5 +56,3 @@ def login_required(view_func):
             return response(PARAMS_ERROR, '用户未登录', error=True)
 
     return _wrapped_view
-
-
