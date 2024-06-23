@@ -4,13 +4,16 @@ from enterprise.models import Enterprise
 
 
 # Create your models here.
-class UserActivity(models.Model):
+class Activity(models.Model):
     user_id = models.ForeignKey(to='user.User', on_delete=models.CASCADE)
-    enter_id = models.ForeignKey(to='enterprise.Enterprise', on_delete=models.CASCADE)
+    enter_id = models.ForeignKey(to='enterprise.Enterprise', on_delete=models.CASCADE, null=True)
     from_act_id = models.ForeignKey(to='UserActivity', null=True)
     title = models.CharField(max_length=50)
     content = models.TextField()
     like = models.ManyToManyField(to='user.User', related_name='like_user_activity', on_delete=models.CASCADE)
+
+    def to_string(self):
+        return f"Activity(id={self.id}, title={self.title}, content={self.content})"
 
 
 class Comment(models.Model):
