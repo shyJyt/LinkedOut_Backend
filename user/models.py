@@ -6,4 +6,15 @@ from django.db import models
 class User(models.Model):
     email = models.EmailField(max_length=50, unique=True)
     password = models.CharField(max_length=50)
-    name = models.CharField(max_length=50)
+    real_name = models.CharField(max_length=50)
+    nickname = models.CharField(max_length=50)
+    education = models.IntegerField(choices=((0, '未知'), (1, '本科以下'), (2, '本科'), (3, '硕士'), (4, '博士')),
+                                    default=0)
+    work_city = models.CharField(max_length=50)
+    interested_post = models.ManyToManyField('enterprise.Post', related_name='interested_user', on_delete=models.CASCADE)
+    blog_link = models.CharField(max_length=100)
+    github_link = models.CharField(max_length=100)
+    resume_url = models.CharField(max_length=100)
+    gpt_limit = models.IntegerField(default=10)
+
+    enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True)
