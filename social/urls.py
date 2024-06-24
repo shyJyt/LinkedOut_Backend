@@ -10,4 +10,8 @@ urlpatterns = [
     path('display_activity/', views.display_activity),
     path('get_user_activity_list/', views.get_user_activity_list),
     path('get_enter_activity_list/', views.get_enter_activity_list),
+    path('like_activity/', views.like_activity),
+    path('comment_activity/', views.comment_activity),
+    path('update_comment/', views.update_comment),
+    path('delete_activity/', views.delete_activity),
 ]
