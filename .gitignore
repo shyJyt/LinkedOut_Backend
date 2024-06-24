@@ -6,6 +6,7 @@ __pycache__
 db.sqlite3
 media
 config.py
+test.py
 */migrations
  
 # Backup files #
@@ -13,6 +14,9 @@ config.py
  
 # If you are using PyCharm #
 .idea
+
+# If you are using Visual Studio Code #
+.vscode
  
 # Python #
 *.py[cod]

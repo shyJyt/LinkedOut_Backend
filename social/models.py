@@ -7,10 +7,12 @@ from enterprise.models import Enterprise
 class UserActivity(models.Model):
     user_id = models.ForeignKey(to='user.User', on_delete=models.CASCADE)
     enter_id = models.ForeignKey(to='enterprise.Enterprise', on_delete=models.CASCADE)
+    # 源动态被删除时，这里应该不受影响，不能设置 on_delete=models.CASCADE / SET_NULL
+    # 可以不用外键关联，直接存储源动态的 id
     from_act_id = models.ForeignKey(to='UserActivity', null=True)
     title = models.CharField(max_length=50)
     content = models.TextField()
-    like = models.ManyToManyField(to='user.User', related_name='like_user_activity', on_delete=models.CASCADE)
+    like = models.ManyToManyField(to='user.User', related_name='like_user_activity')
 
 
 class Comment(models.Model):
