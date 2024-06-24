@@ -1,5 +1,36 @@
+import random
+import time
+
 from qiniu import Auth, put_file, etag, BucketManager
 from config import ACCESS_KEY, SECRET_KEY, BUCKET_NAME, BASE_URL
+
+
+def generate_time_stamp() -> str:
+    """
+    生成时间戳
+    :return: 时间戳
+    """
+    return str(int(time.time()))
+
+
+def save_file_local(file):
+    """
+    保存文件到本地
+    :param file: 文件对象
+    :return: 文件名
+    """
+    # 获取文件名
+    file_name = file.name
+    # 获取文件后缀名
+    file_suffix = file_name.split('.')[-1]
+    # 生成文件名
+    file_name = str(random.randint(100000, 999999)) + '.' + file_suffix
+    # 保存文件
+    file_path = 'tempFile/' + file_name
+    with open(file_path, 'wb+') as f:
+        for chunk in file.chunks():
+            f.write(chunk)
+    return file_path
 
 
 def upload_file(key: str, file_path) -> bool:
