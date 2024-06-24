@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from utils.Response import response
+from utils.response import response
 from utils.view_decorator import login_required, allowed_methods
 from utils.status_code import *
 from utils.qos import *
@@ -486,7 +486,3 @@ def searchPost(request):
             'education': p.education,
             'work_experience': p.work_experience,
         })
-
-
-
-
