@@ -1,5 +1,5 @@
-from enterprise.models import *
-from user.models import User
+from enterprise.models import Post, PostRecruitment, User
+from social.models import Message
 from utils.response import response
 from utils.status_code import *
 from utils.view_decorator import allowed_methods, login_required
@@ -106,3 +106,32 @@ def getResume(request):
         'resume_url': user.resume_url
     }
     return response(data=data)
+
+
+@allowed_methods(['POST'])
+@login_required
+def hire(request):
+    """
+    发送录取通知
+    """
+    user = request.user
+    user: User
+    # 查看用户是否为企业用户
+    if user.enterprise_user is None or user.enterprise_user.role != 0:
+        return response(code=PERMISSION, msg='您不是企业管理员')
+    candidate_id = request.POST.get('candidate_id', None)
+    if not candidate_id:
+        return response(code=PARAMS_ERROR, msg='参数不完整')
+    user = User.objects.filter(id=candidate_id).first()
+    if not user:
+        return response(code=PARAMS_ERROR, msg='用户不存在')
+    # 发送消息
+    message_params = {
+        'from_user_id': user.id,
+        'to_user_id': candidate_id,
+        'type': 0,
+        'title': '录用信息',
+        'content': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用'
+    }
+    Message.objects.create(**message_params)
+    return response(msg='发送成功')

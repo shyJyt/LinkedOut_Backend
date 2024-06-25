@@ -1,7 +1,6 @@
-from enterprise.models import PostRecruitment
-from user.models import User
+from enterprise.models import PostRecruitment, User
 from utils.response import response
-from utils.status_code import *
+from utils.status_code import PARAMS_ERROR, PERMISSION
 from utils.view_decorator import login_required, allowed_methods
 
 
@@ -14,9 +13,6 @@ def sendResume(request):
     """
     user = request.user
     user: User
-    # 不能是企业用户
-    if user.enterprise_user is not None:
-        return response(code=PERMISSION, msg='您是企业用户,不能投递简历')
     # 获取参数
     post_recruitment_id = request.POST.get('post_recruitment_id', None)
     if not post_recruitment_id:

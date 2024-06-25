@@ -1,9 +1,9 @@
-from enterprise.models import *
-from user.models import User
-from utils.qos import *
+from enterprise.models import User, Enterprise, EnterpriseUser
+from utils.qos import upload_file
 from utils.response import response
-from utils.status_code import *
+from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION
 from utils.view_decorator import login_required, allowed_methods
+from social.models import Message
 
 
 @allowed_methods(['POST'])
@@ -112,13 +112,17 @@ def exitEnterprise(request):
     # 查看用户是否为企业用户
     if user.enterprise_user is None:
         return response(code=PERMISSION, msg='您不是企业用户')
-    # TODO 给企业管理员发送消息
+    # 给企业管理员发送消息
     from_user_id = user.id
     enterprise = user.enterprise_user.enterprise
-    # 找到企业管理员
-    to_user_id = enterprise.enterpriseuser_set.filter(role=0).first().user_id
-    content = '员工' + str(user.real_name) + '退出了企业'
-    pass
+    message_params = {
+        'from_user_id': from_user_id,
+        'to_user_id': enterprise.enterpriseuser_set.filter(role=0).first().user_id,
+        'type': 0,
+        'title': '员工退出企业',
+        'content': '员工' + str(user.real_name) + '退出了企业',
+    }
+    Message.objects.create(**message_params)
     # 删除企业用户
     user.enterprise_user.delete()
     user.enterprise_user = None

@@ -3,7 +3,7 @@ from views.employee.enterprise import joinEnterprise, completeEnterpriseInfo, cr
 from views.employee.recruitment import sendResume
 from views.manager.manage_employee import addEmployee, expelEmployee
 from views.manager.manage_enterprise_info import updateEnterpriseInfo
-from views.manager.manage_recruitment import postRecruitment, getCandidates, getResume
+from views.manager.manage_recruitment import postRecruitment, getCandidates, getResume, hire
 from views.search.enterprise import searchEnterprise, getEnterpriseInfo
 from views.search.recruitment import getRecruitment, getPostRecruitment, searchPost
 
@@ -24,4 +24,5 @@ urlpatterns = [
     path('getCandidates/', getCandidates),
     path('getResume/', getResume),
     path('searchPost/', searchPost),
+    path('hire/', hire),
 ]

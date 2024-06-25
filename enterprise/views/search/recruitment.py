@@ -1,7 +1,6 @@
 from enterprise.models import Enterprise, PostRecruitment, Post
-from user.models import User
 from utils.response import response
-from utils.status_code import *
+from utils.status_code import PARAMS_ERROR
 from utils.view_decorator import allowed_methods
 
 
@@ -59,6 +58,7 @@ def searchPost(request):
     筛选岗位,条件为以下之一:
     岗位名称，工作地点，薪资待遇（上限/下限/面议），
     学历要求，工作经验（上限/下限/无要求）要求
+    企业id,与上述条件之一结合,可有可无
     """
     post_name = request.GET.get('post_name', None)
     work_place = request.GET.get('work_place', None)
@@ -69,25 +69,30 @@ def searchPost(request):
     if not any([post_name, work_place, salary_range, education, work_experience_range, enterprise_id]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
     post = None
-    # TODO 筛选企业
+    # 筛选企业,如果有企业id,先用企业id筛出一个queryset,再用queryset筛选岗位
+    if enterprise_id:
+        enterprise = Enterprise.objects.filter(id=enterprise_id).first()
+        if not enterprise:
+            return response(code=PARAMS_ERROR, msg='企业不存在')
+        post = PostRecruitment.objects.filter(enterprise_id=enterprise)
     if post_name:
-        post = Post.objects.filter(name__contains=post_name)
+        post = post.filter(post__name__contains=post_name)
     if work_place:
-        post = PostRecruitment.objects.filter(work_place=work_place)
+        post = post.filter(work_place__contains=work_place)
     if salary_range:
         if salary_range[0] == '-1':
             salary = '面议'
         else:
             salary = str(salary_range[0]) + '-' + str(salary_range[1]) + '元'
-        post = PostRecruitment.objects.filter(salary=salary)
+        post = post.filter(salary=salary)
     if education:
-        post = PostRecruitment.objects.filter(education=education)
+        post = post.filter(education=education)
     if work_experience_range:
         if work_experience_range[0] == '-1':
             work_experience = '无要求'
         else:
             work_experience = str(work_experience_range[0]) + '-' + str(work_experience_range[1]) + '年'
-        post = PostRecruitment.objects.filter(work_experience=work_experience)
+        post = post.filter(work_experience=work_experience)
     if not post:
         return response(code=PARAMS_ERROR, msg='没有符合条件的岗位')
     data = []

@@ -1,4 +1,4 @@
-from enterprise.models import *
+from enterprise.models import Enterprise
 from utils.response import response
 from utils.status_code import *
 from utils.view_decorator import allowed_methods

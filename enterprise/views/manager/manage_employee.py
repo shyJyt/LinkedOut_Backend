@@ -1,4 +1,5 @@
-from user.models import User
+from enterprise.models import EnterpriseUser, User
+from social.models import Message
 from utils.response import response
 from utils.status_code import *
 from utils.view_decorator import login_required, allowed_methods
@@ -24,12 +25,15 @@ def addEmployee(request):
     employee = User.objects.filter(id=user_id).first()
     if not employee:
         return response(code=PARAMS_ERROR, msg='用户不存在')
-    from_user_id = user.id
-    to_user_id = user_id
-    enterprise = user.enterprise_user.enterprise
-    content = '管理员邀请你加入企业' + str(enterprise.id)
-    # TODO 发送消息
-    pass
+    # 发送消息
+    message_params = {
+        'from_user_id': user_id,
+        'to_user_id': employee.id,
+        'type': 0,
+        'title': '邀请加入企业',
+        'content': '管理员邀请你加入企业' + str(user.enterprise_user.enterprise.name),
+    }
+    Message.objects.create(**message_params)
     return response(msg='邀请成功')
 
 
@@ -53,12 +57,15 @@ def expelEmployee(request):
     employee = EnterpriseUser.objects.filter(id=employee_id).first()
     if not employee:
         return response(code=PARAMS_ERROR, msg='员工不存在')
-    # TODO 发送消息
-    from_user_id = user.id
-    to_user_id = employee_id
-    enterprise = user.enterprise_user.enterprise
-    content = '管理员开除了你'
-    pass
+    # 发送消息
+    message_params = {
+        'from_user_id': user.id,
+        'to_user_id': employee.user_id,
+        'type': 0,
+        'title': '开除通知',
+        'content': '管理员开除了你',
+    }
+    Message.objects.create(**message_params)
     # 删除企业用户
     employee_user = employee.user
     employee.delete()
