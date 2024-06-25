@@ -1,21 +1,27 @@
 from django.urls import path
-from . import views
+from views.employee.enterprise import joinEnterprise, completeEnterpriseInfo, createEnterprise, exitEnterprise
+from views.employee.recruitment import sendResume
+from views.manager.manage_employee import addEmployee, expelEmployee
+from views.manager.manage_enterprise_info import updateEnterpriseInfo
+from views.manager.manage_recruitment import postRecruitment, getCandidates, getResume
+from views.search.enterprise import searchEnterprise, getEnterpriseInfo
+from views.search.recruitment import getRecruitment, getPostRecruitment, searchPost
 
 urlpatterns = [
-    path('createEnterprise/', views.createEnterprise),
-    path('addEmployee/', views.addEmployee),
-    path('updateEnterpriseInfo/', views.updateEnterpriseInfo),
-    path('joinEnterprise/', views.joinEnterprise),
-    path('completeEnterpriseInfo/', views.completeEnterpriseInfo),
-    path('exitEnterprise/', views.exitEnterprise),
-    path('expelEmployee/', views.expelEmployee),
-    path('searchEnterprise/', views.searchEnterprise),
-    path('getEnterpriseInfo/', views.getEnterpriseInfo),
-    path('postRecruitment/', views.postRecruitment),
-    path('getRecruitment/', views.getRecruitment),
-    path('getPostRecruitment/', views.getPostRecruitment),
-    path('sendResume/', views.sendResume),
-    path('getCandidates/', views.getCandidates),
-    path('getResume/', views.getResume),
-    path('searchPost/', views.searchPost),
+    path('createEnterprise/', createEnterprise),
+    path('addEmployee/', addEmployee),
+    path('updateEnterpriseInfo/', updateEnterpriseInfo),
+    path('joinEnterprise/', joinEnterprise),
+    path('completeEnterpriseInfo/', completeEnterpriseInfo),
+    path('exitEnterprise/', exitEnterprise),
+    path('expelEmployee/', expelEmployee),
+    path('searchEnterprise/', searchEnterprise),
+    path('getEnterpriseInfo/', getEnterpriseInfo),
+    path('postRecruitment/', postRecruitment),
+    path('getRecruitment/', getRecruitment),
+    path('getPostRecruitment/', getPostRecruitment),
+    path('sendResume/', sendResume),
+    path('getCandidates/', getCandidates),
+    path('getResume/', getResume),
+    path('searchPost/', searchPost),
 ]
