@@ -1,6 +1,6 @@
 import os
 
-from enterprise.models import User
+from enterprise.models import User, EnterpriseUser
 
 from utils.qos import upload_file, save_file_local, get_file
 from utils.view_decorator import allowed_methods, login_required
@@ -98,15 +98,16 @@ def get_user_info(request):
 
     if user.enterprise_user:
         user_info['enterprise'] = user.enterprise_user.enterprise.name
-        user_info['role'] = user.enterprise_user.get_role_display()
+        user_info['role'] = EnterpriseUser.ROLE_CHOICES[user.enterprise_user.role][1]
         user_info['position'] = user.enterprise_user.position
         user_info['work_age'] = user.enterprise_user.work_age
         user_info['phone_number'] = user.enterprise_user.phone_number
+
     return response(SUCCESS, '获取用户信息成功！', data=user_info)
 
 
 @allowed_methods(['GET'])
-def get_certain_user_info(request):
+def get_user_info_by_id(request):
     """
     获取指定用户信息
     """
@@ -122,22 +123,3 @@ def get_certain_user_info(request):
             return response(MYSQL_ERROR, '用户不存在！', error=True)
     else:
         return response(PARAMS_ERROR, '用户id不可为空！', error=True)
-
-
-@allowed_methods(['GET'])
-@login_required
-def user_download_resume(request):
-    """
-    下载用户简历
-    """
-    user = request.user
-    user: User
-    resume_key = user.resume_key
-    if resume_key:
-        data = {
-            'resume_url': get_file(resume_key)
-        }
-        return response(SUCCESS, '获取简历下载链接成功！', data=data)
-    else:
-        return response(PARAMS_ERROR, '用户未上传简历！', error=True)
-    
