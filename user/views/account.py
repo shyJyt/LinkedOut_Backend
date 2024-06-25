@@ -52,10 +52,11 @@ def register(request):
     :return: [code, msg, data] 其中data中有验证码
     """
     nickname = request.POST.get('nickname', None)
+    real_name = request.POST.get('real_name', None)
     email = request.POST.get('email', None)
     password = request.POST.get('password', None)
     password_repeat = request.POST.get('password_repeat', None)
-    if nickname and password and password_repeat and email:
+    if nickname and real_name and password and password_repeat and email:
         re_str = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$'
         if not re.match(re_str, email):
             return response(PARAMS_ERROR, '邮箱格式错误！', error=True)
@@ -74,7 +75,7 @@ def register(request):
         password_encode = create_md5(password, salt)
 
         # 创建用户, is_active=False, 未激活, 激活后才能登录,update_or_create,如果存在则更新,不存在则创建
-        default_fields = {'email': email, 'nickname': nickname, 'password': password_encode, 'salt': salt}
+        default_fields = {'email': email, 'nickname': nickname, 'real_name': real_name, 'password': password_encode, 'salt': salt}
         User.objects.create(**default_fields)
 
         return response(SUCCESS, '请注意查收邮件！', data=code)
@@ -134,11 +135,13 @@ def init_user_avatar(user: User) -> str:
     :param user: 用户对象
     """
     key = str(user.id) + '_avatar.png'
+
+    # 先存到数据库
+    user.avatar_key = key
+    user.save()
     # 生成头像并上传
     render_identicon(key)
     upload_file(key, 'tempFile/' + key)
-    user.avatar_key = key
-    user.save()
     # 删除本地存储的文件
     path_file = 'tempFile/' + key
     os.remove(path_file)

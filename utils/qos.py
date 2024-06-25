@@ -61,7 +61,9 @@ def upload_file(key: str, file_path) -> bool:
         assert ret['key'] == key
         assert ret['hash'] == etag(local_file)
         return True
-    return False
+    else:
+        print(ret + '\n' + info)
+        return False
 
 
 def get_file(key: str) -> str:

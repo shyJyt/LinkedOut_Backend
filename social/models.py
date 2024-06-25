@@ -20,13 +20,13 @@ class UserActivity(models.Model):
             'enter_id': self.enter_id.id,
             'title': self.title,
             'content': self.content,
+            'is_forward': self.is_forward,
             'likes': self.like.count(),
             'create_time': self.create_time,
         }
 
 
 class Comment(models.Model):
-    # 每个用户可以多次评论同一条动态，此处不能用外键，改为存用户id
     user_id = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE)
     act_id = models.ForeignKey(to='UserActivity', on_delete=models.CASCADE)
     content = models.TextField()
@@ -40,4 +40,5 @@ class Message(models.Model):
     obj_id = models.IntegerField(null=True)
     title = models.CharField(max_length=50)
     content = models.TextField()
+    is_read = models.BooleanField(default=False)
     create_time = models.DateTimeField(auto_now_add=True)
