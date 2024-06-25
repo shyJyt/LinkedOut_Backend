@@ -2,10 +2,10 @@ import os
 
 from user.models import User
 
-from utils.qos import upload_file
+from utils.qos import upload_file, save_file_local, get_file
 from utils.view_decorator import allowed_methods, login_required
 from utils.response import response
-from utils.status_code import PARAMS_ERROR, SUCCESS, MYSQL_ERROR
+from utils.status_code import PARAMS_ERROR, SUCCESS, MYSQL_ERROR, OSS_ERROR
 
 @allowed_methods(['POST'])
 @login_required
@@ -127,3 +127,22 @@ def get_certain_user_info(request):
             return response(MYSQL_ERROR, '用户不存在！', error=True)
     else:
         return response(PARAMS_ERROR, '用户id不可为空！', error=True)
+
+
+@allowed_methods(['GET'])
+@login_required
+def user_download_resume(request):
+    """
+    下载用户简历
+    """
+    user = request.user
+    user: User
+    resume_key = user.resume_key
+    if resume_key:
+        data = {
+            'resume_url': get_file(resume_key)
+        }
+        return response(SUCCESS, '获取简历下载链接成功！', data=data)
+    else:
+        return response(PARAMS_ERROR, '用户未上传简历！', error=True)
+    
