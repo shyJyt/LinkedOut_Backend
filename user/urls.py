@@ -10,8 +10,7 @@ urlpatterns = [
     path('changeInfo', user_info.update_user_info),
     path('userUploadResume', user_info.upload_resume),
     path('getUserInfo', user_info.get_user_info),
-    path('get_certain_user_info', user_info.get_certain_user_info),
-    path('userDownloadResume', user_info.user_download_resume),
+    path('getUserInfoById', user_info.get_user_info_by_id),
 
     path('get_recruit_info', recommend.get_recruit_info),
     path('get_similar_enterprise', recommend.get_similar_enterprise),
