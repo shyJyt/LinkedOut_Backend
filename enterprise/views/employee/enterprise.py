@@ -1,7 +1,7 @@
 from enterprise.models import User, Enterprise, EnterpriseUser
 from utils.qos import upload_file
 from utils.response import response
-from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION
+from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION_ERROR
 from utils.view_decorator import login_required, allowed_methods
 from social.models import Message
 
@@ -17,7 +17,7 @@ def createEnterprise(request):
     user: User
     # 查看用户是否为企业用户
     if user.enterprise_user is not None:
-        return response(code=PERMISSION, msg='您已经是企业用户')
+        return response(code=PERMISSION_ERROR, msg='您已经是企业用户')
     # 获取参数
     name = request.POST.get('name', None)
     intro = request.POST.get('intro', None)
@@ -60,7 +60,7 @@ def joinEnterprise(request):
     user: User
     # 查看用户是否为企业用户
     if user.enterprise_user is not None:
-        return response(code=PERMISSION, msg='您已经是企业用户')
+        return response(code=PERMISSION_ERROR, msg='您已经是企业用户')
     # 获取参数
     enterprise_id = request.POST.get('enterprise_id', None)
     if not enterprise_id:
@@ -69,11 +69,18 @@ def joinEnterprise(request):
     enterprise = Enterprise.objects.filter(id=enterprise_id).first()
     if not enterprise:
         return response(code=PARAMS_ERROR, msg='企业不存在')
+    # 是否被邀请
+    invitation = user.be_invited.filter(obj_id=enterprise_id, is_handled=False).first()
+    if not invitation:
+        return response(code=PERMISSION_ERROR, msg='您未被邀请')
     # 创建企业用户
-    enterprise_user = EnterpriseUser.objects.create(user_id=user, enterprise_id=enterprise, role=1)
+    enterprise_user = EnterpriseUser.objects.create(enterprise=enterprise, role=1)
     enterprise_user.save()
     user.enterprise_user = enterprise_user
     user.save()
+    # 处理邀请
+    invitation.is_handled = True
+    invitation.save()
     return response(msg='加入成功')
 
 
@@ -88,7 +95,7 @@ def completeEnterpriseInfo(request):
     user: User
     # 查看用户是否为企业用户
     if user.enterprise_user is None:
-        return response(code=PERMISSION, msg='您不是企业用户')
+        return response(code=PERMISSION_ERROR, msg='您不是企业用户')
     # 获取参数
     position = request.POST.get('position', None)
     work_age = request.POST.get('work_age', None)
@@ -115,20 +122,23 @@ def exitEnterprise(request):
     user: User
     # 查看用户是否为企业用户
     if user.enterprise_user is None:
-        return response(code=PERMISSION, msg='您不是企业用户')
-    # 给企业管理员发送消息
-    from_user_id = user.id
+        return response(code=PERMISSION_ERROR, msg='您不是企业用户')
+    # 查看是否为企业管理员
+    if user.enterprise_user.role == 0:
+        return response(code=PERMISSION_ERROR, msg='您是企业管理员,不能退出企业')
+    # 删除企业用户
     enterprise = user.enterprise_user.enterprise
+    user.enterprise_user.delete()
+    user.enterprise_user = None
+    user.save()
+    # 给企业管理员发送消息
     message_params = {
-        'from_user_id': from_user_id,
-        'to_user_id': enterprise.enterpriseuser_set.filter(role=0).first().user_id,
+        'from_user_id': user,
+        'to_user_id': enterprise.enterpriseuser_set.filter(role=0).first().user,
         'type': 0,
         'title': '员工退出企业',
         'content': '员工' + str(user.real_name) + '退出了企业',
     }
-    Message.objects.create(**message_params)
-    # 删除企业用户
-    user.enterprise_user.delete()
-    user.enterprise_user = None
-    user.save()
+    message = Message.objects.create(**message_params)
+    message.save()
     return response(msg='退出成功')

@@ -1,7 +1,7 @@
 from enterprise.models import User
 from utils.qos import upload_file
 from utils.response import response
-from utils.status_code import PERMISSION, PARAMS_ERROR, SERVER_ERROR
+from utils.status_code import PERMISSION_ERROR, PARAMS_ERROR, SERVER_ERROR
 from utils.view_decorator import login_required, allowed_methods
 
 
@@ -15,7 +15,7 @@ def updateEnterpriseInfo(request):
     user: User
     # 查看用户是否为企业用户
     if user.enterprise_user is None or user.enterprise_user.role != 0:
-        return response(code=PERMISSION, msg='您不是企业管理员')
+        return response(code=PERMISSION_ERROR, msg='您不是企业管理员')
     # 获取参数
     intro = request.POST.get('intro', None)
     img = request.FILES.get('img', None)

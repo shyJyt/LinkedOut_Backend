@@ -75,6 +75,10 @@ def searchPost(request):
         if not enterprise:
             return response(code=PARAMS_ERROR, msg='企业不存在')
         post = PostRecruitment.objects.filter(enterprise_id=enterprise)
+        if not post:
+            return response(code=PARAMS_ERROR, msg='该企业没有发布招聘信息')
+    else:
+        post = PostRecruitment.objects.all()
     if post_name:
         post = post.filter(post__name__contains=post_name)
     if work_place:
