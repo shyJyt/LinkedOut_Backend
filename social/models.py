@@ -27,7 +27,7 @@ class UserActivity(models.Model):
 
 
 class Comment(models.Model):
-    user_id = models.ForeignKey(to='user.User', on_delete=models.CASCADE)
+    user_id = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE)
     act_id = models.ForeignKey(to='UserActivity', on_delete=models.CASCADE)
     content = models.TextField()
     create_time = models.DateTimeField(auto_now_add=True)
