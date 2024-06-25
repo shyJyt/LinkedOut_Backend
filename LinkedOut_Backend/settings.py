@@ -49,7 +49,7 @@ CORS_ALLOW_HEADERS = (
     'content-type',
     'dnt',
     'origin',
-    'user-agent',
+    'employee-agent',
     'x-csrftoken',
     'x-requested-with',
     'Pragma',
