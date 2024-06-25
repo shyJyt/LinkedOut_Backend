@@ -1,7 +1,7 @@
 import re
 import os
 
-from user.models import User
+from enterprise.models import User
 
 from utils.qos import upload_file, get_file
 from utils.token import generate_token
@@ -73,8 +73,8 @@ def register(request):
         password_encode = create_md5(password, salt)
 
         # 创建用户, is_active=False, 未激活, 激活后才能登录,update_or_create,如果存在则更新,不存在则创建
-        default_fields = {'nickname': nickname, 'password': password_encode, 'salt': salt}
-        User.objects.update_or_create(defaults=default_fields, email=email)
+        default_fields = {'email': email, 'nickname': nickname, 'password': password_encode, 'salt': salt}
+        User.objects.create(**default_fields)
 
         return response(SUCCESS, '请注意查收邮件！', data=code)
     else:
@@ -91,7 +91,13 @@ def active_user(request):
     correct_code = request.POST.get('correct_code', None)
     get_code = request.POST.get('get_code', None)
     email = request.POST.get('email', None)
+
     if email and get_code and correct_code:
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return response(MYSQL_ERROR, '待激活用户不存在', error=True)
+        
         try:
             user = User.objects.get(email=email, is_active=False)
             if get_code == correct_code:
@@ -146,10 +152,10 @@ def unsubscribe(request):
     注销用户
     """
     # TODO 注销用户
-    # 1、真注销：要删掉相关联的什么东西？
+    # 1、真注销：要删掉相关联的什么东西？会触发 on_delete
     # 全部级联删除是最稳妥的，但是会损失一些合理性，比如删除一个动态后，转发它的动态会被直接删除而不是显示原内容已被删除
-    # 如果保留一部分表不被级联删除，那么查找这些表的时候，需要判断用户存不存在来避免异常
-    # 2、伪注销：把 is_active 置为 False
+    # 如果保留一部分表不被级联删除，要么置空，要么不用外键，查找的时候，需要判断存不存在来避免异常
+    # 2、伪注销：把 is_active 置为 False，不会触发 on_delete
     # 同样需要判断用户是否已注销，但是最坏也就是已注销用户的信息被获取，不会出现异常
 
     pass

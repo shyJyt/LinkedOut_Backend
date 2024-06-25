@@ -1,7 +1,7 @@
 from functools import wraps
 from django.http import JsonResponse
-from status_code import *
-from user.models import User
+from .status_code import *
+from enterprise.models import User
 from utils.response import response
 from utils.token import get_value
 
