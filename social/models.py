@@ -9,7 +9,8 @@ class UserActivity(models.Model):
     enter_id = models.ForeignKey(to='enterprise.Enterprise', on_delete=models.CASCADE)
     # 源动态被删除时，这里应该不受影响，不能设置 on_delete=models.CASCADE / SET_NULL
     # 可以不用外键关联，直接存储源动态的 id
-    from_act_id = models.IntegerField(null=True)
+    from_act_id = models.ForeignKey(to='UserActivity', on_delete=models.SET_NULL, null=True)
+    is_forward = models.BooleanField(default=False)
     title = models.CharField(max_length=50)
     content = models.TextField()
     like = models.ManyToManyField(to='user.User', related_name='like_user_activity')
@@ -28,7 +29,7 @@ class UserActivity(models.Model):
 
 class Comment(models.Model):
     # 每个用户可以多次评论同一条动态，此处不能用外键，改为存用户id
-    user_id = models.IntegerField()
+    user_id = models.ForeignKey(to='user.User', on_delete=models.CASCADE)
     act_id = models.ForeignKey(to='UserActivity', on_delete=models.CASCADE)
     content = models.TextField()
     create_time = models.DateTimeField(auto_now_add=True)
