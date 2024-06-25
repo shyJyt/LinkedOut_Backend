@@ -1,9 +1,12 @@
+from django.db import IntegrityError
 from django.shortcuts import render
+
+from user.models import User
 from utils.response import response
 from utils.status_code import *
-from utils.view_decorator import allowed_methods, login_required
-from enterprise.models import EnterpriseUser
-from social.models import UserActivity, Comment
+from utils.view_decorator import allowed_methods, login_required, guest_and_user
+from enterprise.models import EnterpriseUser, Enterprise
+from social.models import UserActivity, Comment, Message
 
 
 # Create your views here.
@@ -59,18 +62,28 @@ def update_activity(request):
 @login_required
 def delete_activity(request):
     """
-    删除动态
+    删除动态 （动态发布者、动态对应企业管理员）
     :param request: activity_id
     :return: [code, msg]
     """
-    # TODO: 企业管理员是否可以删除动态
     user = request.user
     act_id = request.POST.get('activity_id')
     try:
         activity = UserActivity.objects.get(act_id)
-        if activity.user_id != user:
-            return response(PARAMS_ERROR, '没用该动态删除权限！', error=True)
-        activity.delete()
+        # 当前用户是动态发布者
+        if activity.user_id == user:
+            activity.delete()
+        else:
+            try:
+                enterprise_user = EnterpriseUser.objects.get(user=user)
+                # 当前用户是该动态对应企业的管理员
+                if enterprise_user.role == 0 and enterprise_user.enterprise == activity.enter_id:
+                    activity.delete()
+                    send_message(user, activity.user_id, 0, act_id, '系统通知', '企业管理员删除了你的评论')
+                else:
+                    return response(PARAMS_ERROR, '没用该动态删除权限！', error=True)
+            except EnterpriseUser.DoesNotExist:
+                return response(PARAMS_ERROR, '没用该动态删除权限！', error=True)
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '动态不存在！', error=True)
     return response(SUCCESS, '动态删除成功！')
@@ -94,8 +107,22 @@ def forward_activity(request):
     content = request.POST.get('content')
     from_act_id = request.POST.get('from_act_id')
     if not from_act_id:
+        return response(PARAMS_ERROR, '未选择待转发动态！', error=True)
+    try:
+        from_act = UserActivity.objects.get(from_act_id)
+        # from_act是原创
+        if not from_act.is_forward:
+            UserActivity.objects.create(user_id=user, enter_id=enterprise, from_act_id=from_act, is_forward=True,
+                                        title=title, content=content)
+            send_message(user, from_act.user_id, 3, from_act.id, '转发', '用户' + user.nickname + '转发了你的动态')
+        # from_act是转发动态
+        else:
+            UserActivity.objects.create(user_id=user, enter_id=enterprise, from_act_id=from_act.from_act_id,
+                                        is_forward=True, title=title, content=content)
+            send_message(user, from_act.from_act_id.user_id, 3, from_act.from_act_id.id, '转发',
+                         '用户' + user.nickname + '转发了你的动态')
+    except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '转发动态不存在！', error=True)
-    UserActivity.objects.create(user_id=user, enter_id=enterprise, from_act_id=from_act_id, title=title, content=content)
     return response(SUCCESS, '动态发布成功！')
 
 
@@ -110,45 +137,159 @@ def display_activity(request):
     try:
         activity = UserActivity.objects.get(act_id)
         data = [activity.to_string()]
-        if activity.from_act_id:
-            from_activity = UserActivity.objects.get(activity.from_act_id)
-            data.append(from_activity.to_string())
+        if activity.is_forward:
+            try:
+                from_activity = activity.from_act_id
+                data.append(from_activity.to_string())
+            except UserActivity.DoesNotExist:
+                data.append([])
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '动态不存在！', error=True)
     return response(SUCCESS, '动态展示成功！', data=data)
 
 
 @allowed_methods(['GET'])
+@guest_and_user
 def get_user_activity_list(request):
     """
     获取用户动态列表
     :param request: user_id
-    :return: [code, msg, data] 其中data为列表
+    :return: [code, msg, data] 其中data为发布动态者的头像，昵称，兴趣岗位，学历，动态发布时间，标题，内容，点赞收藏数，评论列表
     """
+    user = request.user
     user_id = request.GET.get('user_id')
     try:
-        activities = UserActivity.objects.filter(user_id=user_id).values('id', 'title', 'content')
-        activity_list = list(activities)
-    except:
-        return response(PARAMS_ERROR, '用户不存在！', error=True)
-    return response(SUCCESS, '动态展示成功！', data=activity_list)
+        check_user = User.objects.get(user_id)
+    except User.DoesNotExist:
+        return response(PARAMS_ERROR, '该用户不存在！', error=True)
+    try:
+        activities = UserActivity.objects.filter(user_id=user_id).order_by('create_time')
+    except UserActivity.DoesNotExist:
+        activity_list = []
+    activity_list = []
+    for activity in activities:
+        # 动态的评论列表
+        comments = Comment.objects.filter(act_id=activity).order_by('create_time')
+        comment_list = [
+            {
+                'user_id': comment.user_id.id,
+                'user_name': comment.user_id.nickname,
+                'user_avatar': comment.user_id.avatar_key,
+                'content': comment.content,
+                'create_time': comment.create_time,
+            }
+            for comment in comments
+        ]
+        activity_detail = {
+            'title': activity.title,
+            'content': activity.content,
+            'likes': activity.like.count(),
+            'is_like': False,
+            'is_forward': activity.is_forward,
+            'comment_list': comment_list,
+            'create_time': activity.create_time,
+        }
+        if user:
+            like = activity.like.get(id=user.id)
+            if like:
+                activity_detail.is_like = True  # 如果用户已登录且点赞，is_like=True
+        # 如果是转载动态，加入原动态信息from_activity
+        if activity.is_forward:
+            from_act = activity.from_act_id
+            if from_act:
+                from_activity = {
+                    'id': from_act.id,
+                    'user_id': from_act.user_id.id,
+                    'user_name': from_act.user_id.nickname,
+                    'user_avatar': from_act.user_id.avatar_key,
+                    'title': from_act.title,
+                    'content': from_act.content,
+                    'create_time': from_act.create_time,
+                }
+            activity_detail['from_activity'] = from_activity
+        activity_list.append(activity_detail)
+    data = {
+        'user_avatar': check_user.avatar_key,
+        'user_name': check_user.nickname,
+        'education': check_user.education.get_education_display(),
+        'interested_post': check_user.interested_post.all(),
+        'activity_list': activity_list
+    }
+    return response(SUCCESS, '获取用户动态列表成功！', data=data)
 
 
 @allowed_methods(['GET'])
+@guest_and_user
 def get_enter_activity_list(request):
     """
-    获取企业动态列表
+    获取企业动态列表，按员工影响力排序（按动态点赞数排序！）
     :param request: enter_id
     :return: [code, msg, data] 其中data为列表
     """
-    # TODO: 按员工影响力排序
+    user = request.user
     enter_id = request.GET.get('enter_id')
     try:
-        activities = UserActivity.objects.filter(enter_id=enter_id).values('id', 'title', 'content')
-        activity_list = list(activities)
-    except:
-        return response(PARAMS_ERROR, '企业不存在！', error=True)
-    return response(SUCCESS, '动态展示成功！', data=activity_list)
+        enterprise = Enterprise.objects.get(enter_id)
+    except Enterprise.DoesNotExist:
+        return response(PARAMS_ERROR, '该企业不存在！', error=True)
+    try:
+        activities = UserActivity.objects.filter(enter_id=enter_id).order_by('like.count()')
+    except UserActivity.DoesNotExist:
+        activity_list = []
+    activity_list = []
+    for activity in activities:
+        # 动态发布者信息
+        publisher = activity.user_id
+        if publisher:
+            publisher_info = {
+                'user_id': publisher.id,
+                'user_name': publisher.nickname,
+                'user_avatar': publisher.avatar_key,
+            }
+        else:
+            publisher_info = {}
+        # 动态的评论列表
+        comments = Comment.objects.filter(act_id=activity).order_by('create_time')
+        comment_list = [
+            {
+                'user_id': comment.user_id.id,
+                'user_name': comment.user_id.nickname,
+                'user_avatar': comment.user_id.avatar_key,
+                'content': comment.content,
+                'create_time': comment.create_time,
+            }
+            for comment in comments
+        ]
+        activity_detail = {
+            'publisher': publisher_info,
+            'title': activity.title,
+            'content': activity.content,
+            'likes': activity.like.count(),
+            'is_like': False,
+            'is_forward': activity.is_forward,
+            'comment_list': comment_list,
+            'create_time': activity.create_time,
+        }
+        if user:
+            like = activity.like.get(id=user.id)
+            if like:
+                activity_detail.is_like = True  # 如果用户已登录且点赞，is_like=True
+        # 如果是转载动态，加入原动态信息from_activity
+        if activity.is_forward:
+            from_act = activity.from_act_id
+            if from_act:
+                from_activity = {
+                    'id': from_act.id,
+                    'user_id': from_act.user_id.id,
+                    'user_name': from_act.user_id.nickname,
+                    'user_avatar': from_act.user_id.avatar_key,
+                    'title': from_act.title,
+                    'content': from_act.content,
+                    'create_time': from_act.create_time,
+                }
+            activity_detail['from_activity'] = from_activity
+        activity_list.append(activity_detail)
+    return response(SUCCESS, '获取用户动态列表成功！', data=activity_list)
 
 
 @allowed_methods(['POST'])
@@ -164,9 +305,10 @@ def like_activity(request):
     try:
         activity = UserActivity.objects.get(act_id)
         like = activity.like.get(id=user.id)
-        if not like:   # 如果like为空就点赞
+        if not like:  # 如果like为空就点赞
             activity.like.add(user)
-        else:          # 如果like不为空就取消点赞
+            send_message(user, activity.user_id, 1, activity.id, '点赞', '用户' + user.nickname + '点赞了你的动态')
+        else:  # 如果like不为空就取消点赞
             activity.like.remove(user)
         activity.save()
     except UserActivity.DoesNotExist:
@@ -187,7 +329,8 @@ def comment_activity(request):
     content = request.POST.get('content')
     try:
         activity = UserActivity.objects.get(act_id)
-        Comment.objects.create(user_id=user.id, act_id=activity, content=content)
+        Comment.objects.create(user_id=user, act_id=activity, content=content)
+        send_message(user, activity.user_id, 2, activity.id, '评论', '用户' + user.nickname + '评论了你的动态')
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '动态不存在！', error=True)
     return response(SUCCESS, '评论发布成功！')
@@ -198,7 +341,7 @@ def comment_activity(request):
 def update_comment(request):
     """
     编辑评论
-    :param request: content_id, content
+    :param request: comment_id, content
     :return: [code, msg]
     """
     user = request.user
@@ -206,7 +349,7 @@ def update_comment(request):
     content = request.POST.get('content')
     try:
         comment = Comment.objects.get(comment_id)
-        if comment.user_id != user.id:
+        if comment.user_id != user:
             return response(PARAMS_ERROR, '无编辑权限！', error=True)
         comment.content = content
         comment.save()
@@ -219,18 +362,126 @@ def update_comment(request):
 @login_required
 def delete_comment(request):
     """
-    删除评论 （发布评论的人、发布动态的人？，企业管理员？）
+    删除评论 （发布评论的人、企业管理员）
     :param request: content_id
     :return: [code, msg]
     """
-    # TODO: 发布动态的人和企业管理员是否可以删除评论
     user = request.user
     comment_id = request.POST.get('comment_id')
     try:
         comment = Comment.objects.get(comment_id)
-        if comment.user_id != user.id:
-            return response(PARAMS_ERROR, '无删除权限！', error=True)
-        comment.delete()
+        # 当前用户是评论发布者
+        if comment.user_id == user:
+            comment.delete()
+        else:
+            try:
+                enterprise_user = EnterpriseUser.objects.get(user=user)
+                # 当前用户是评论动态对应企业的管理员
+                if enterprise_user.role == 0 and enterprise_user.enterprise == comment.act_id.enter_id:
+                    comment.delete()
+                    send_message(user, comment.user_id, 0, comment_id, '系统通知', '企业管理员删除了你的评论')
+                else:
+                    return response(PARAMS_ERROR, '无删除权限！', error=True)
+            except EnterpriseUser.DoesNotExist:
+                return response(PARAMS_ERROR, '无删除权限！', error=True)
     except Comment.DoesNotExist:
         return response(PARAMS_ERROR, '评论不存在！', error=True)
-    return response(SUCCESS, '评论发布成功！')
+    return response(SUCCESS, '评论删除成功！')
+
+
+@allowed_methods(['POST'])
+@login_required
+def follow_user(request):
+    """
+    关注用户/取消关注
+    :param request: user_id
+    :return: [code, msg]
+    """
+    user = request.user
+    user_id = request.POST.get('user_id')
+    try:
+        follow_user = User.objects.get(user_id)
+    except User.DoesNotExist:
+        return response(PARAMS_ERROR, '该用户不存在！', error=True)
+    follow = user.follow_user.get(id=user_id)
+    if not follow:
+        user.follow_user.add(follow_user)
+    else:
+        user.follow_user.remove(follow_user)
+    user.save()
+    return response(SUCCESS, '关注成功！')
+
+
+def send_message(from_user, to_user, msg_type, obj_id, title, content):
+    """
+    发送系统通知（动态交互、员工变更等）
+    :param : from_user, to_user, type, obj_id, title, content
+    :return: 是否成功
+    """
+    try:
+        message = Message(
+            from_user=from_user,
+            to_user=to_user,
+            type=msg_type,
+            obj_id=obj_id,
+            title=title,
+            content=content
+        )
+        message.save()
+        return True
+    except IntegrityError:
+        return False
+
+
+@allowed_methods(['GET'])
+@login_required
+def get_message_list(request):
+    """
+    获取用户消息列表
+    :param request:
+    :return: [code, msg, data]
+    """
+    user = request.user
+    try:
+        messages = Message.objects.filter(to_user=user).order_by('-create_time')
+        message_list = [
+            {
+                'from_user': message.from_user.username,
+                'type': message.get_type_display(),
+                'title': message.title,
+                'content': message.content,
+                'is_read': message.is_read,
+                'create_time': message.create_time
+            }
+            for message in messages
+        ]
+        return response(SUCCESS, '获取消息列表成功！', data=message_list)
+    except Exception as e:
+        return response(SERVER_ERROR, '获取消息列表失败！', error=True)
+
+
+@allowed_methods(['GET'])
+@login_required
+def check_message(request):
+    """
+    查看消息详情
+    :param request: message_id
+    :return: [code, msg, data]
+    """
+    message_id = request.GET.get('message_id')
+    try:
+        message = Message.objects.get(message_id)
+        message_detail = {
+            'from_user': message.from_user.username,
+            'type': message.get_type_display(),
+            'obj_id': message.obj_id,
+            'title': message.title,
+            'content': message.content,
+            'create_time': message.create_time
+        }
+        if not message.is_read:
+            message.is_read = True
+            message.save()
+            return response(SUCCESS, '查看消息详情成功！', data=message_detail)
+    except Message.DoesNotExist:
+        return response(PARAMS_ERROR, '消息不存在！', error=True)
