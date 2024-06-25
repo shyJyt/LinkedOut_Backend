@@ -1,7 +1,7 @@
 import re
 import os
 
-from user.models import User
+from enterprise.models import User
 
 from utils.qos import upload_file, get_file
 from utils.token import generate_token

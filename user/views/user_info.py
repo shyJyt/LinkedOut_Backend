@@ -1,6 +1,6 @@
 import os
 
-from user.models import User
+from enterprise.models import User
 
 from utils.qos import upload_file, save_file_local, get_file
 from utils.view_decorator import allowed_methods, login_required

@@ -4,7 +4,6 @@ from utils.view_decorator import login_required, allowed_methods
 from utils.status_code import *
 from utils.qos import *
 from .models import *
-from user.models import User
 
 
 # Create your views here.

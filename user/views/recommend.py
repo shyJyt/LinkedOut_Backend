@@ -1,5 +1,5 @@
 from enterprise.models import PostRecruitment
-from user.models import User
+from enterprise.models import User
 
 from utils.view_decorator import allowed_methods, login_required
 from utils.response import response
