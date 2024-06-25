@@ -11,7 +11,7 @@ from utils.status_code import PARAMS_ERROR, SUCCESS, MYSQL_ERROR, OSS_ERROR
 @login_required
 def update_user_info(request):
     """
-    更新用户信息，不包括头像和简历
+    更新用户信息，不包括简历
     """
     user = request.user
     user: User
@@ -23,6 +23,8 @@ def update_user_info(request):
     work_city = request.POST.get('work_city', None)
     blog_link = request.POST.get('blog_link', None)
     github_link = request.POST.get('github_link', None)
+    avatar = request.FILES.get('avatar', None)
+
     if nickname:
         user.nickname = nickname
     if real_name:
@@ -39,21 +41,6 @@ def update_user_info(request):
         user.blog_link = blog_link
     if github_link:
         user.github_link = github_link
-
-    user.save()
-    return response(SUCCESS, '更新用户信息成功！')
-
-
-@allowed_methods(['POST'])
-@login_required
-def upload_user_avatar(request):
-    """
-    上传用户头像
-    """
-    user = request.user
-    user: User
-    avatar = request.FILES.get('avatar', None)
-
     if avatar:
         local_file = save_file_local(avatar)
         key = str(user.id) + '_avatar.png'
@@ -64,10 +51,9 @@ def upload_user_avatar(request):
             user.avatar_key = key
         else:
             return response(OSS_ERROR, '上传头像失败！', error=True)
-        user.save()
-        return response(SUCCESS, '上传头像成功！')
-    else:
-        return response(PARAMS_ERROR, '未上传头像！', error=True)
+
+    user.save()
+    return response(SUCCESS, '更新用户信息成功！')
 
 
 @allowed_methods(['POST'])
@@ -107,6 +93,15 @@ def get_user_info(request):
     user = request.user
     user: User
     user_info = user.to_string()
+    user_info['avatar'] = get_file(user.avatar_key)
+    user_info['resume'] = get_file(user.resume_key)
+
+    if user.enterprise_user:
+        user_info['enterprise'] = user.enterprise_user.enterprise.name
+        user_info['role'] = user.enterprise_user.get_role_display()
+        user_info['position'] = user.enterprise_user.position
+        user_info['work_age'] = user.enterprise_user.work_age
+        user_info['phone_number'] = user.enterprise_user.phone_number
     return response(SUCCESS, '获取用户信息成功！', data=user_info)
 
 
