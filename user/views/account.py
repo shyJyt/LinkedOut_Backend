@@ -12,6 +12,7 @@ from utils.generate_avatar import render_identicon
 from utils.response import response
 from utils.status_code import PARAMS_ERROR, SUCCESS, MYSQL_ERROR
 
+
 @allowed_methods(['POST'])
 def login(request):
     """
@@ -97,7 +98,7 @@ def active_user(request):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return response(MYSQL_ERROR, '待激活用户不存在', error=True)
-        
+
         try:
             user = User.objects.get(email=email, is_active=False)
             if get_code == correct_code:

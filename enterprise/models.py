@@ -1,10 +1,11 @@
 from django.db import models
 
-EDUCATION_CHOICES = ((0, '未知'), 
-                     (1, '本科以下'), 
-                     (2, '本科'), 
-                     (3, '硕士'), 
+EDUCATION_CHOICES = ((0, '未知'),
+                     (1, '本科以下'),
+                     (2, '本科'),
+                     (3, '硕士'),
                      (4, '博士'))
+
 
 class User(models.Model):
     email = models.EmailField(max_length=50, unique=True)
@@ -21,7 +22,8 @@ class User(models.Model):
     resume_key = models.CharField(max_length=100, null=True)
     gpt_limit = models.IntegerField(default=10)
 
-    enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True, related_name='user')
+    enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True,
+                                           related_name='user')
     follow_enterprise = models.ManyToManyField('enterprise.Enterprise', related_name='enter_fans')
     follow_user = models.ManyToManyField('self')
 
@@ -34,7 +36,6 @@ class User(models.Model):
             'email': self.email,
             'real_name': self.real_name,
             'nickname': self.nickname,
-            'real_name': self.real_name,
             'age': self.age,
             'education': EDUCATION_CHOICES[self.education][1],
             'work_city': self.work_city,
@@ -56,7 +57,7 @@ class EnterpriseUser(models.Model):
     role = models.IntegerField(choices=ROLE_CHOICES, default=1)
     position = models.CharField(max_length=255, default='待完善')
     # 工龄
-    work_age = models.IntegerField(default=0)
+    work_age = models.CharField(max_length=255, default='待完善')
     phone_number = models.CharField(max_length=255, default='待完善')
 
 

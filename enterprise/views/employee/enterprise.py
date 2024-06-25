@@ -26,19 +26,23 @@ def createEnterprise(request):
     if not all([name, intro, img]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
     # 使用qos对象存储上传图片
-    img_url = 'enterprise/' + img.name
-    # 先保存在本地Static文件夹
-    with open('static/' + img_url, 'wb') as f:
+    img_url = 'enterprise_' + img.name
+    # 先保存在本地Static文件中
+    # 输出当前路径
+    with open('./Static/' + img_url, 'wb') as f:
         for chunk in img.chunks():
             f.write(chunk)
     # 上传到qos
-    if not upload_file(img_url, 'static/' + img_url):
+    if not upload_file(img_url, 'Static/' + img_url):
         return response(code=SERVER_ERROR, msg='上传图片失败')
+    # 上传成功,删除本地文件
+    import os
+    os.remove('./Static/' + img_url)
     # 创建企业
     enterprise = Enterprise.objects.create(name=name, intro=intro, img_url=img_url)
     enterprise.save()
     # 关联企业管理员
-    enterprise_user = EnterpriseUser.objects.create(user_id=user, enterprise_id=enterprise, role=0)
+    enterprise_user = EnterpriseUser.objects.create(user=user, enterprise=enterprise, role=0)
     enterprise_user.save()
     user.enterprise_user = enterprise_user
     user.save()

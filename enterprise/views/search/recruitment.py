@@ -24,7 +24,7 @@ def getRecruitment(request):
             'post_recruitment_id': e.id,
             'post_name': e.post.name
         })
-    return response(msg='获取企业找平信息成功', data=data)
+    return response(msg='获取企业招聘信息成功', data=data)
 
 
 @allowed_methods(['GET'])

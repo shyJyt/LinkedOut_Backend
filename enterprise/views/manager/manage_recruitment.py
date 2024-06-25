@@ -48,7 +48,7 @@ def postRecruitment(request):
     else:
         work_experience = str(work_experience_range[0]) + '-' + str(work_experience_range[1]) + '年'
     # 创建招聘信息
-    post_recruitment = PostRecruitment.objects.create(enterprise_id=user.enterprise_user.enterprise, post_id=post,
+    post_recruitment = PostRecruitment.objects.create(enterprise=user.enterprise_user.enterprise, post=post,
                                                       recruit_number=recruit_number, work_content=work_content,
                                                       work_place=work_place, salary=salary, education=education,
                                                       work_experience=work_experience,
@@ -120,11 +120,15 @@ def hire(request):
     if user.enterprise_user is None or user.enterprise_user.role != 0:
         return response(code=PERMISSION, msg='您不是企业管理员')
     candidate_id = request.POST.get('candidate_id', None)
-    if not candidate_id:
+    post_id = request.POST.get('post_id', None)
+    if not all([candidate_id, post_id]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
     user = User.objects.filter(id=candidate_id).first()
     if not user:
         return response(code=PARAMS_ERROR, msg='用户不存在')
+    post_recruitment = PostRecruitment.objects.filter(id=post_id).first()
+    if not post_recruitment:
+        return response(code=PARAMS_ERROR, msg='招聘信息不存在')
     # 发送消息
     message_params = {
         'from_user_id': user.id,
@@ -134,4 +138,8 @@ def hire(request):
         'content': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用'
     }
     Message.objects.create(**message_params)
-    return response(msg='发送成功')
+    # 对应岗位招聘信息中的招聘人数减一
+    post_recruitment.recruit_number -= 1
+    post_recruitment.save()
+    # 将剩余的招聘人数返回
+    return response(msg='发送成功', data={'recruit_number': post_recruitment.recruit_number})
