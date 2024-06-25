@@ -73,8 +73,8 @@ def register(request):
         password_encode = create_md5(password, salt)
 
         # 创建用户, is_active=False, 未激活, 激活后才能登录,update_or_create,如果存在则更新,不存在则创建
-        default_fields = {'nickname': nickname, 'password': password_encode, 'salt': salt}
-        User.objects.update_or_create(defaults=default_fields, email=email)
+        default_fields = {'email': email, 'nickname': nickname, 'password': password_encode, 'salt': salt}
+        User.objects.create(**default_fields)
 
         return response(SUCCESS, '请注意查收邮件！', data=code)
     else:
@@ -91,7 +91,13 @@ def active_user(request):
     correct_code = request.POST.get('correct_code', None)
     get_code = request.POST.get('get_code', None)
     email = request.POST.get('email', None)
+
     if email and get_code and correct_code:
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return response(MYSQL_ERROR, '待激活用户不存在', error=True)
+        
         try:
             user = User.objects.get(email=email, is_active=False)
             if get_code == correct_code:

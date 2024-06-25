@@ -1,19 +1,24 @@
 from django.db import models
 
+EDUCATION_CHOICES = ((0, '未知'), 
+                     (1, '本科以下'), 
+                     (2, '本科'), 
+                     (3, '硕士'), 
+                     (4, '博士'))
 
 class User(models.Model):
     email = models.EmailField(max_length=50, unique=True)
     password = models.CharField(max_length=50)
-    real_name = models.CharField(max_length=50)
+    real_name = models.CharField(max_length=50, null=True)
     nickname = models.CharField(max_length=50)
+    age = models.IntegerField(default=None, null=True)
     avatar_key = models.CharField(max_length=50, default='')
-    education = models.IntegerField(choices=((0, '未知'), (1, '本科以下'), (2, '本科'), (3, '硕士'), (4, '博士')),
-                                    default=0)
-    work_city = models.CharField(max_length=50)
+    education = models.IntegerField(choices=EDUCATION_CHOICES, default=0)
+    work_city = models.CharField(max_length=50, null=True)
     interested_post = models.ManyToManyField('enterprise.Post', related_name='interested_user')
-    blog_link = models.CharField(max_length=100)
-    github_link = models.CharField(max_length=100)
-    resume_url = models.CharField(max_length=100)
+    blog_link = models.CharField(max_length=100, null=True)
+    github_link = models.CharField(max_length=100, null=True)
+    resume_key = models.CharField(max_length=100, null=True)
     gpt_limit = models.IntegerField(default=10)
 
     enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True, related_name='user')
@@ -26,9 +31,17 @@ class User(models.Model):
 
     def to_string(self):
         return {
+            'email': self.email,
+            'real_name': self.real_name,
             'nickname': self.nickname,
             'real_name': self.real_name,
+            'age': self.age,
+            'education': EDUCATION_CHOICES[self.education][1],
+            'work_city': self.work_city,
             'interested_posts': [post.name for post in self.interested_post.all()],
+            'blog_link': self.blog_link,
+            'github_link': self.github_link,
+            'gpt_limit': self.gpt_limit,
         }
 
 
