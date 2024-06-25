@@ -12,11 +12,10 @@ urlpatterns = [
     path('getUserInfo', user_info.get_user_info),
     path('getUserInfoById', user_info.get_user_info_by_id),
 
-    path('get_recruit_info', recommend.get_recruit_info),
-    path('get_similar_enterprise', recommend.get_similar_enterprise),
-    path('get_similar_user', recommend.get_similar_user),
+    path('getRecommendRecruit', recommend.get_recommend_recruit),
+    path('getRecommendUser', recommend.get_recommend_user),
 
-    path('search_user', search.search_user),
+    path('searchUser', search.search_user),
 
     path('optimize_resume', others.optimize_resume),
 ]

@@ -3,7 +3,7 @@ import os
 from enterprise.models import User, EnterpriseUser
 
 from utils.qos import upload_file, save_file_local, get_file
-from utils.view_decorator import allowed_methods, login_required
+from utils.view_decorator import allowed_methods, login_required, guest_and_user
 from utils.response import response
 from utils.status_code import PARAMS_ERROR, SUCCESS, MYSQL_ERROR, OSS_ERROR
 
@@ -92,21 +92,13 @@ def get_user_info(request):
     """
     user = request.user
     user: User
-    user_info = user.to_string()
-    user_info['avatar'] = get_file(user.avatar_key)
-    user_info['resume'] = get_file(user.resume_key)
-
-    if user.enterprise_user:
-        user_info['enterprise'] = user.enterprise_user.enterprise.name
-        user_info['role'] = EnterpriseUser.ROLE_CHOICES[user.enterprise_user.role][1]
-        user_info['position'] = user.enterprise_user.position
-        user_info['work_age'] = user.enterprise_user.work_age
-        user_info['phone_number'] = user.enterprise_user.phone_number
+    user_info = user.get_all_user_info()
 
     return response(SUCCESS, '获取用户信息成功！', data=user_info)
 
 
 @allowed_methods(['GET'])
+@guest_and_user
 def get_user_info_by_id(request):
     """
     获取指定用户信息
@@ -114,12 +106,24 @@ def get_user_info_by_id(request):
     user_id = request.GET.get('user_id', None)
     if user_id:
         try:
-            user = User.objects.get(id=user_id, is_active=True)
-            user_info = user.to_string()
-            # TODO: 不加 login_required 装饰器如何获得登录用户和目标用户的关系？
+            target_user = User.objects.get(id=user_id, is_active=True)
+            user_info = target_user.get_all_user_info()
+            
+            if request.user:
+                # 用户查看指定用户，还要返回是否关注
+                user = request.user
+                user: User
+                if user.follow_user.filter(id=user_id).exists():
+                    user_info['is_follow'] = True
+                else:
+                    user_info['is_follow'] = False
+            else:
+                # 游客查看指定用户
+                user_info['is_follow'] = False
 
             return response(SUCCESS, '获取用户信息成功！', data=user_info)
         except User.DoesNotExist:
             return response(MYSQL_ERROR, '用户不存在！', error=True)
     else:
         return response(PARAMS_ERROR, '用户id不可为空！', error=True)
+    

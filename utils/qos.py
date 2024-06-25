@@ -51,6 +51,7 @@ def upload_file(key: str, file_path) -> bool:
         if ret:
             assert ret == {}
         else:
+            print('删除重复文件出错:' + ret + '\n' + info)
             return False
     # 生成上传 Token，可以指定过期时间等
     token = q.upload_token(BUCKET_NAME, key, 3600)
@@ -62,7 +63,7 @@ def upload_file(key: str, file_path) -> bool:
         assert ret['hash'] == etag(local_file)
         return True
     else:
-        print(ret + '\n' + info)
+        print('上传出错:' + ret + '\n' + info)
         return False
 
 

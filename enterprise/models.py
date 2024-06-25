@@ -1,4 +1,5 @@
 from django.db import models
+from utils.qos import get_file
 
 EDUCATION_CHOICES = ((0, '未知'), 
                      (1, '本科以下'), 
@@ -43,6 +44,20 @@ class User(models.Model):
             'github_link': self.github_link,
             'gpt_limit': self.gpt_limit,
         }
+
+    def get_all_user_info(self):
+        user_info = self.to_string()
+        user_info['avatar'] = get_file(self.avatar_key)
+        user_info['resume'] = get_file(self.resume_key)
+
+        if self.enterprise_user:
+            user_info['enterprise'] = self.enterprise_user.enterprise.name
+            user_info['role'] = EnterpriseUser.ROLE_CHOICES[self.enterprise_user.role][1]
+            user_info['position'] = self.enterprise_user.position
+            user_info['work_age'] = self.enterprise_user.work_age
+            user_info['phone_number'] = self.enterprise_user.phone_number
+        
+        return user_info
 
 
 class EnterpriseUser(models.Model):
