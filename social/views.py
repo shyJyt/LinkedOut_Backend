@@ -79,7 +79,7 @@ def delete_activity(request):
                 # 当前用户是该动态对应企业的管理员
                 if enterprise_user.role == 0 and enterprise_user.enterprise == activity.enter_id:
                     activity.delete()
-                    send_message(user, activity.user_id, 0, act_id, '系统通知', '企业管理员删除了你的评论')
+                    send_message(user, activity.user, 0, act_id, '系统通知', f'企业管理员 {user.nickname} 删除了你的动态')
                 else:
                     return response(PARAMS_ERROR, '没用该动态删除权限！', error=True)
             except EnterpriseUser.DoesNotExist:
@@ -114,13 +114,12 @@ def forward_activity(request):
         if not from_act.is_forward:
             UserActivity.objects.create(user=user, enterprise=enterprise, from_act=from_act, is_forward=True,
                                         title=title, content=content)
-            send_message(user, from_act.user, 3, from_act.id, '转发', '用户' + user.nickname + '转发了你的动态')
+            send_message(user, from_act.user, 3, from_act.id, '转发', f'用户 {user.nickname} 转发了你的动态')
         # from_act是转发动态
         else:
             UserActivity.objects.create(user=user, enterprise=enterprise, from_act=from_act.from_act_id,
                                         is_forward=True, title=title, content=content)
-            send_message(user, from_act.from_act.user, 3, from_act.from_act.id, '转发',
-                         '用户' + user.nickname + '转发了你的动态')
+            send_message(user, from_act.from_act.user, 3, from_act.from_act.id, '转发', f'用户 {user.nickname} 转发了你的动态')
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '转发动态不存在！', error=True)
     return response(SUCCESS, '动态发布成功！')
@@ -177,11 +176,12 @@ def get_user_activity_list(request):
                 'user_name': comment.user.nickname,
                 'user_avatar': comment.user.avatar_key,
                 'content': comment.content,
-                'create_time': comment.create_time,
+                'create_time': comment.create_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
             for comment in comments
         ]
         activity_detail = {
+            'activity_id': activity.id,
             'user_avatar': check_user.avatar_key,
             'user_name': check_user.nickname,
             'education': check_user.get_education_display(),
@@ -193,7 +193,7 @@ def get_user_activity_list(request):
             'is_forward': activity.is_forward,
             'comment_num': comments.count(),
             'comment_list': comment_list,
-            'create_time': activity.create_time,
+            'create_time': activity.create_time.strftime('%Y-%m-%d %H:%M:%S'),
         }
         if user and activity.like.filter(id=user.id).exists():
             activity_detail['is_like'] = True  # 如果用户已登录且点赞，is_like=True
@@ -208,7 +208,7 @@ def get_user_activity_list(request):
                     'user_avatar': from_act.user.avatar_key,
                     'title': from_act.title,
                     'content': from_act.content,
-                    'create_time': from_act.create_time,
+                    'create_time': from_act.create_time.strftime('%Y-%m-%d %H:%M:%S'),
                 }
                 activity_detail['from_activity'] = from_activity
             else:
@@ -237,6 +237,8 @@ def get_enter_activity_list(request):
     """
     user = request.user
     enter_id = request.GET.get('enter_id')
+    if not enter_id:
+        return response(PARAMS_ERROR, '请正确选择企业！', error=True)
     try:
         enterprise = Enterprise.objects.get(id=enter_id)
     except Enterprise.DoesNotExist:
@@ -265,11 +267,12 @@ def get_enter_activity_list(request):
                 'user_name': comment.user.nickname,
                 'user_avatar': comment.user.avatar_key,
                 'content': comment.content,
-                'create_time': comment.create_time,
+                'create_time': comment.create_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
             for comment in comments
         ]
         activity_detail = {
+            'activity_id': activity.id,
             'publisher': publisher_info,
             'title': activity.title,
             'content': activity.content,
@@ -278,7 +281,7 @@ def get_enter_activity_list(request):
             'is_forward': activity.is_forward,
             'comment_num': comments.count(),
             'comment_list': comment_list,
-            'create_time': activity.create_time,
+            'create_time': activity.create_time.strftime('%Y-%m-%d %H:%M:%S'),
         }
         if user and activity.like.filter(id=user.id).exists():
             activity_detail['is_like'] = True  # 如果用户已登录且点赞，is_like=True
@@ -293,7 +296,7 @@ def get_enter_activity_list(request):
                     'user_avatar': from_act.user.avatar_key,
                     'title': from_act.title,
                     'content': from_act.content,
-                    'create_time': from_act.create_time,
+                    'create_time': from_act.create_time.strftime('%Y-%m-%d %H:%M:%S'),
                 }
                 activity_detail['from_activity'] = from_activity
             else:
@@ -390,7 +393,8 @@ def delete_comment(request):
                 # 当前用户是评论动态对应企业的管理员
                 if enterprise_user.role == 0 and enterprise_user.enterprise == comment.act_id.enter_id:
                     comment.delete()
-                    send_message(user, comment.user_id, 0, comment_id, '系统通知', '企业管理员删除了你的评论')
+                    send_message(user, comment.user, 0, comment_id, '系统通知',
+                                 f'企业管理员 {user.nickname} 删除了你的评论')
                 else:
                     return response(PARAMS_ERROR, '无删除权限！', error=True)
             except EnterpriseUser.DoesNotExist:
@@ -476,8 +480,24 @@ def get_user_social_info(request):
     following_count = user.follow_user.count()
     followers_count = User.objects.filter(follow_user__id=user_id).count()
 
-    following_list = user.follow_user.all().values('id', 'nickname', 'avatar_key')
-    following_list = list(following_list)
+    followings = user.follow_user.all()
+    following_list = []
+
+    for following in followings:
+        interested_posts = list(following.interested_post.values_list('name', flat=True))
+        liked_activities = UserActivity.objects.filter(user_id=following.id)
+        likes = sum(activity.like.count() for activity in liked_activities)
+        followers = User.objects.filter(follow_user__id=following.id).count()
+        following_info = {
+            'id': following.id,
+            'nickname': following.nickname,
+            'avatar_key': following.avatar_key,
+            'education': following.get_education_display(),
+            'interested_post': interested_posts,
+            'total_likes': likes,
+            'followers_count': followers,
+        }
+        following_list.append(following_info)
 
     data = {
         'total_likes': total_likes,
@@ -527,7 +547,7 @@ def get_message_list(request):
                 'title': message.title,
                 'content': message.content,
                 'is_read': message.is_read,
-                'create_time': message.create_time
+                'create_time': message.create_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
             for message in messages
         ]
@@ -556,11 +576,11 @@ def check_message(request):
             'obj_id': message.obj_id,
             'title': message.title,
             'content': message.content,
-            'create_time': message.create_time
+            'create_time': message.create_time.strftime('%Y-%m-%d %H:%M:%S'),
         }
         if not message.is_read:
             message.is_read = True
             message.save()
-            return response(SUCCESS, '查看消息详情成功！', data=message_detail)
+        return response(SUCCESS, '查看消息详情成功！', data=message_detail)
     except Message.DoesNotExist:
         return response(PARAMS_ERROR, '消息不存在！', error=True)
