@@ -1,4 +1,5 @@
 from enterprise.models import Enterprise
+from utils.qos import get_file
 from utils.response import response
 from utils.status_code import *
 from utils.view_decorator import allowed_methods
@@ -16,11 +17,13 @@ def search_enterprise(request):
     enterprise = Enterprise.objects.filter(name__contains=name)
     data = []
     for e in enterprise:
+        img_key = e.img_url
+        img_url = get_file(img_key)
         data.append({
             'id': e.id,
             'name': e.name,
             'intro': e.intro,
-            'img_url': e.img_url
+            'img_url': img_url
         })
     return response(data=data)
 
@@ -37,9 +40,11 @@ def get_enterprise_info(request):
     enterprise = Enterprise.objects.filter(id=enterprise_id).first()
     if not enterprise:
         return response(code=PARAMS_ERROR, msg='企业不存在')
+    img_key = enterprise.img_url
+    img_url = get_file(img_key)
     data = {
         'name': enterprise.name,
         'intro': enterprise.intro,
-        'img_url': enterprise.img_url
+        'img_url': img_url
     }
     return response(data=data)

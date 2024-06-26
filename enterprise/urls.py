@@ -6,7 +6,7 @@ from .views.manager.manage_employee import add_employee, expel_employee
 from .views.manager.manage_enterprise_info import update_enterprise_info
 from .views.manager.manage_recruitment import post_recruitment, get_candidates, get_resume, hire
 from .views.search.enterprise import search_enterprise, get_enterprise_info
-from .views.search.recruitment import get_recruitment, get_post_recruitment, search_post
+from .views.search.recruitment import get_recruitment, get_post_recruitment, search_post, search_post_by_name
 
 urlpatterns = [
     path('createEnterprise/', create_enterprise),
@@ -28,5 +28,5 @@ urlpatterns = [
     path('hire/', hire),
     path('acceptHire/', accept_hire),
     path('getEEInfo/', get_ee_info),
-
+    path('searche_post_by_name/', search_post_by_name)
 ]
