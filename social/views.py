@@ -3,6 +3,7 @@ from django.shortcuts import render
 
 from utils.response import response
 from utils.status_code import *
+from utils.qos import get_file
 from utils.view_decorator import allowed_methods, login_required, guest_and_user
 from enterprise.models import User, EnterpriseUser, Enterprise
 from social.models import UserActivity, Comment, Message
@@ -174,7 +175,7 @@ def get_user_activity_list(request):
             {
                 'user_id': comment.user.id,
                 'user_name': comment.user.nickname,
-                'user_avatar': comment.user.avatar_key,
+                'user_avatar': get_file(comment.user.avatar_key),
                 'content': comment.content,
                 'create_time': comment.create_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
@@ -182,7 +183,7 @@ def get_user_activity_list(request):
         ]
         activity_detail = {
             'activity_id': activity.id,
-            'user_avatar': check_user.avatar_key,
+            'user_avatar': get_file(check_user.avatar_key),
             'user_name': check_user.nickname,
             'education': check_user.get_education_display(),
             'interested_post': interested_posts,
@@ -205,7 +206,7 @@ def get_user_activity_list(request):
                     'id': from_act.id,
                     'user_id': from_act.user.id,
                     'user_name': from_act.user.nickname,
-                    'user_avatar': from_act.user.avatar_key,
+                    'user_avatar': get_file(from_act.user.avatar_key),
                     'title': from_act.title,
                     'content': from_act.content,
                     'create_time': from_act.create_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -255,7 +256,7 @@ def get_enter_activity_list(request):
             publisher_info = {
                 'user_id': publisher.id,
                 'user_name': publisher.nickname,
-                'user_avatar': publisher.avatar_key,
+                'user_avatar': get_file(publisher.avatar_key),
             }
         else:
             publisher_info = {}
@@ -265,7 +266,7 @@ def get_enter_activity_list(request):
             {
                 'user_id': comment.user.id,
                 'user_name': comment.user.nickname,
-                'user_avatar': comment.user.avatar_key,
+                'user_avatar': get_file(comment.user.avatar_key),
                 'content': comment.content,
                 'create_time': comment.create_time.strftime('%Y-%m-%d %H:%M:%S'),
             }
@@ -293,7 +294,7 @@ def get_enter_activity_list(request):
                     'id': from_act.id,
                     'user_id': from_act.user.id,
                     'user_name': from_act.user.nickname,
-                    'user_avatar': from_act.user.avatar_key,
+                    'user_avatar': get_file(from_act.user.avatar_key),
                     'title': from_act.title,
                     'content': from_act.content,
                     'create_time': from_act.create_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -491,7 +492,7 @@ def get_user_social_info(request):
         following_info = {
             'id': following.id,
             'nickname': following.nickname,
-            'avatar_key': following.avatar_key,
+            'avatar_key': get_file(following.avatar_key),
             'education': following.get_education_display(),
             'interested_post': interested_posts,
             'total_likes': likes,
