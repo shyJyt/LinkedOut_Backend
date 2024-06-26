@@ -164,13 +164,13 @@ def get_user_activity_list(request):
     except User.DoesNotExist:
         return response(PARAMS_ERROR, '该用户不存在！', error=True)
     try:
-        activities = UserActivity.objects.filter(user_id=user_id).order_by('create_time')
+        activities = UserActivity.objects.filter(user_id=user_id).order_by('-create_time')
     except UserActivity.DoesNotExist:
         activity_list = []
     activity_list = []
     for activity in activities:
         # 动态的评论列表
-        comments = Comment.objects.filter(activity_id=activity.id).order_by('create_time')
+        comments = Comment.objects.filter(activity_id=activity.id).order_by('-create_time')
         comment_list = [
             {
                 'user_id': comment.user.id,
@@ -261,7 +261,7 @@ def get_enter_activity_list(request):
         else:
             publisher_info = {}
         # 动态的评论列表
-        comments = Comment.objects.filter(activity_id=activity.id).order_by('create_time')
+        comments = Comment.objects.filter(activity_id=activity.id).order_by('-create_time')
         comment_list = [
             {
                 'user_id': comment.user.id,
