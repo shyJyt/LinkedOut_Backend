@@ -32,7 +32,13 @@ def updateEnterpriseInfo(request):
             for chunk in img.chunks():
                 f.write(chunk)
         if not upload_file(img_url, 'Static/' + img_url):
+            # 删除本地文件
+            import os
+            os.remove('Static/' + img_url)
             return response(code=SERVER_ERROR, msg='上传图片失败')
+        # 删除本地文件
+        import os
+        os.remove('Static/' + img_url)
         enterprise.img_url = img_url
     enterprise.save()
     return response(msg='修改成功')
