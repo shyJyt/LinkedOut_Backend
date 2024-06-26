@@ -1,11 +1,10 @@
 from django.db import IntegrityError
 from django.shortcuts import render
 
-from user.models import User
 from utils.response import response
 from utils.status_code import *
 from utils.view_decorator import allowed_methods, login_required, guest_and_user
-from enterprise.models import EnterpriseUser, Enterprise
+from enterprise.models import User, EnterpriseUser, Enterprise
 from social.models import UserActivity, Comment, Message
 
 
@@ -213,7 +212,7 @@ def get_user_activity_list(request):
         'user_name': check_user.nickname,
         'education': check_user.education.get_education_display(),
         'interested_post': check_user.interested_post.all(),
-        'activity_list': activity_list
+        'activity_list': activity_list,
     }
     return response(SUCCESS, '获取用户动态列表成功！', data=data)
 
