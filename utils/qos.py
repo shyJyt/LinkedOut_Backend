@@ -45,13 +45,13 @@ def upload_file(key: str, file_path) -> bool:
     # 检查是否重名
     bucket = BucketManager(q)
     ret, info = bucket.stat(BUCKET_NAME, key)
+    print(f'检查是否重名:{ret}\n{info}')
     # 如果存在则删除
     if ret:
-        ret, info = bucket.delete(BUCKET_NAME, key)
+        bucket.delete(BUCKET_NAME, key)
+        ret, info = bucket.stat(BUCKET_NAME, key)
         if ret:
-            assert ret == {}
-        else:
-            print('删除重复文件出错:' + ret + '\n' + info)
+            print(f'删除失败:{ret}\n{info}')
             return False
     # 生成上传 Token，可以指定过期时间等
     token = q.upload_token(BUCKET_NAME, key, 3600)
@@ -63,7 +63,7 @@ def upload_file(key: str, file_path) -> bool:
         assert ret['hash'] == etag(local_file)
         return True
     else:
-        print('上传出错:' + ret + '\n' + info)
+        print(f'上传出错:{ret}\n{info}')
         return False
 
 

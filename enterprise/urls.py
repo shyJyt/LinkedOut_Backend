@@ -1,5 +1,6 @@
 from django.urls import path
-from .views.employee.enterprise import joinEnterprise, completeEnterpriseInfo, createEnterprise, exitEnterprise
+from .views.employee.enterprise import (joinEnterprise, completeEnterpriseInfo,
+                                        createEnterprise, exitEnterprise, getEEInfo)
 from .views.employee.recruitment import sendResume, acceptHire
 from .views.manager.manage_employee import addEmployee, expelEmployee
 from .views.manager.manage_enterprise_info import updateEnterpriseInfo
@@ -26,4 +27,5 @@ urlpatterns = [
     path('searchPost/', searchPost),
     path('hire/', hire),
     path('acceptHire/', acceptHire),
+    path('getEEInfo/', getEEInfo),
 ]
