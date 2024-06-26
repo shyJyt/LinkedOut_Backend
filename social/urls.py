@@ -16,4 +16,7 @@ urlpatterns = [
     path('delete_comment/', views.delete_comment),
     path('get_message_list/', views.get_message_list),
     path('check_message/', views.check_message),
+    path('follow_user/', views.follow_user),
+    path('get_user_social_info/', views.get_user_social_info),
+    path('follow_enterprise/', views.follow_enterprise),
 ]

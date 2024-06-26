@@ -26,7 +26,8 @@ class User(models.Model):
     enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True,
                                            related_name='user')
     follow_enterprise = models.ManyToManyField('enterprise.Enterprise', related_name='enter_fans')
-    follow_user = models.ManyToManyField('self')
+    # symmetrical设为False以保证单向关注
+    follow_user = models.ManyToManyField('self', symmetrical=False)
 
     salt = models.CharField(max_length=4, default='')
     # 是否成功注册
