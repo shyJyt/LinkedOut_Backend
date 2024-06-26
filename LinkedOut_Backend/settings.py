@@ -163,6 +163,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = BUAA_MAIL_USER
 EMAIL_HOST_PASSWORD = BUAA_MAIL_TOKEN
 
+
 ASGI_APPLICATION = "LinkedOut_Backend.routing.application"
 CHANNEL_LAYERS = {
     # "default": {
