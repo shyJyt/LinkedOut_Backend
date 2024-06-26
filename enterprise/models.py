@@ -32,10 +32,10 @@ class User(models.Model):
 
     def to_string(self):
         return {
+            'id': self.id,
             'email': self.email,
             'real_name': self.real_name,
             'nickname': self.nickname,
-            'real_name': self.real_name,
             'age': self.age,
             'education': EDUCATION_CHOICES[self.education][1],
             'work_city': self.work_city,
