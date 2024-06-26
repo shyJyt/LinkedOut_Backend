@@ -7,7 +7,7 @@ from websocket.routing import websocket_urlpatterns
 
 django_asgi_app = get_asgi_application()
 application = ProtocolTypeRouter({
-    # "http": django_asgi_app,
+    "http": django_asgi_app,
     'websocket': AuthMiddlewareStack(
         URLRouter(
             # 后面会完善
