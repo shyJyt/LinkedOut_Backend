@@ -34,6 +34,7 @@ class User(models.Model):
 
     def to_string(self):
         return {
+            'id': self.id,
             'email': self.email,
             'real_name': self.real_name,
             'nickname': self.nickname,
