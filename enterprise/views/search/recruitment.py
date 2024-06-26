@@ -1,4 +1,5 @@
 from enterprise.models import Enterprise, PostRecruitment, Post
+from utils.qos import get_file
 from utils.response import response
 from utils.status_code import PARAMS_ERROR
 from utils.view_decorator import allowed_methods
@@ -111,4 +112,34 @@ def search_post(request):
             'work_experience': p.work_experience,
             'recruit_number': p.recruit_number
         })
+    return response(msg='获取岗位信息成功', data=data)
+
+
+def search_post_by_name(request):
+    """
+    根据名字搜索岗位
+    返回岗位和对应的企业信息
+    """
+    post_name = request.GET.get('post_name', None)
+    if not post_name:
+        return response(code=PARAMS_ERROR, msg='参数不完整')
+    post = Post.objects.filter(name__contains=post_name)
+    data = []
+    for p in post:
+        post_recruitment = PostRecruitment.objects.filter(post=p)
+        for pr in post_recruitment:
+            img_key = pr.enterprise.img_url
+            img_url = get_file(img_key)
+            data.append({
+                'post_recruitment_id': pr.id,
+                'post_name': p.name,
+                'work_place': pr.work_place,
+                'salary': pr.salary,
+                'education': pr.education,
+                'work_experience': pr.work_experience,
+                'recruit_number': pr.recruit_number,
+                'enterprise_name': pr.enterprise.name,
+                'enterprise_id': pr.enterprise.id,
+                'enterprise_img_url': img_url
+            })
     return response(msg='获取岗位信息成功', data=data)
