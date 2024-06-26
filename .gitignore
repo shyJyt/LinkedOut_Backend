@@ -7,8 +7,15 @@ db.sqlite3
 media
 config.py
 test.py
+sonar-command.bat
 */migrations
- 
+
+# sonar
+.scannerwork
+
+# qiniu
+.qiniu_pythonsdk_hostscache.json
+
 # Backup files #
 *.bak
  
