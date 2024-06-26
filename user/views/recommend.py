@@ -20,11 +20,33 @@ def get_recommend_recruit(request):
 
     all_recruit_info_list = []
     for post in interested_posts:
-        recruit_info_list = PostRecruitment.objects.filter(post=post).all()
+        recruit_info_list = []
+
+        recruit_info_res = PostRecruitment.objects.filter(post=post).all()
+
+        # 如果没有招聘信息，跳过
+        if len(recruit_info_res) == 0:
+            continue
+
+        for recruit_info in recruit_info_res:
+            recruit_info_list.append({
+                'recruit_id': recruit_info.id,
+                'enterprise_id': recruit_info.enterprise.id,
+                'enterprise_name': recruit_info.enterprise.name,
+                'recruit_number': recruit_info.recruit_number,
+                'work_place': recruit_info.work_place,
+                'salary': recruit_info.salary,
+                'requirement': recruit_info.requirement,
+                'work_content': recruit_info.work_content,
+                'work_experience': recruit_info.work_experience,
+                'education': recruit_info.education
+            })
+
         all_recruit_info_list.append({
             'post_name': post.name,
-            'recruit_info_list': [recruit_info.to_string() for recruit_info in recruit_info_list]
+            'recruit_info_list': recruit_info_list  
         })
+        
 
     return response(SUCCESS, '获取招聘信息成功！', data=all_recruit_info_list)
 
@@ -33,7 +55,7 @@ def get_recommend_recruit(request):
 @login_required
 def get_recommend_user(request):
     """
-    获取相似用户，求职者或者在职员工，分两个接口也行
+    获取相似用户，用户或者在职员工，分两个接口也行
     """
     user = request.user
     user: User
@@ -46,6 +68,11 @@ def get_recommend_user(request):
 
     for post in interested_posts:
         job_seeker_list = post.interested_user.all()
+
+        # 如果没有具有相同兴趣岗位的用户，跳过
+        if len(job_seeker_list) == 0:
+            continue
+
         all_job_seeker_list.append({
             'post_name': post.name,
             'job_seeker_list': [job_seeker.to_string() for job_seeker in job_seeker_list]
