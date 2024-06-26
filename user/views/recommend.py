@@ -7,7 +7,7 @@ from utils.status_code import PARAMS_ERROR, SUCCESS
 
 @allowed_methods(['GET'])
 @login_required
-def get_recruit_info(request):
+def get_recommend_recruit(request):
     """
     获取用户所有的意向岗位的招聘信息
     """
@@ -31,16 +31,7 @@ def get_recruit_info(request):
 
 @allowed_methods(['GET'])
 @login_required
-def get_similar_enterprise(request):
-    """
-    获取相似企业，感觉招聘信息涵盖了
-    """
-    pass
-
-
-@allowed_methods(['GET'])
-@login_required
-def get_similar_user(request):
+def get_recommend_user(request):
     """
     获取相似用户，求职者或者在职员工，分两个接口也行
     """

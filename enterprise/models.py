@@ -1,10 +1,12 @@
 from django.db import models
+from utils.qos import get_file
 
-EDUCATION_CHOICES = ((0, '未知'), 
-                     (1, '本科以下'), 
-                     (2, '本科'), 
-                     (3, '硕士'), 
+EDUCATION_CHOICES = ((0, '未知'),
+                     (1, '本科以下'),
+                     (2, '本科'),
+                     (3, '硕士'),
                      (4, '博士'))
+
 
 class User(models.Model):
     email = models.EmailField(max_length=50, unique=True)
@@ -21,7 +23,8 @@ class User(models.Model):
     resume_key = models.CharField(max_length=100, null=True)
     gpt_limit = models.IntegerField(default=10)
 
-    enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True, related_name='user')
+    enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True,
+                                           related_name='user')
     follow_enterprise = models.ManyToManyField('enterprise.Enterprise', related_name='enter_fans')
     follow_user = models.ManyToManyField('self')
 
@@ -31,10 +34,10 @@ class User(models.Model):
 
     def to_string(self):
         return {
+            'id': self.id,
             'email': self.email,
             'real_name': self.real_name,
             'nickname': self.nickname,
-            'real_name': self.real_name,
             'age': self.age,
             'education': EDUCATION_CHOICES[self.education][1],
             'work_city': self.work_city,
@@ -43,6 +46,20 @@ class User(models.Model):
             'github_link': self.github_link,
             'gpt_limit': self.gpt_limit,
         }
+
+    def get_all_user_info(self):
+        user_info = self.to_string()
+        user_info['avatar'] = get_file(self.avatar_key)
+        user_info['resume'] = get_file(self.resume_key)
+
+        if self.enterprise_user:
+            user_info['enterprise'] = self.enterprise_user.enterprise.name
+            user_info['role'] = EnterpriseUser.ROLE_CHOICES[self.enterprise_user.role][1]
+            user_info['position'] = self.enterprise_user.position
+            user_info['work_age'] = self.enterprise_user.work_age
+            user_info['phone_number'] = self.enterprise_user.phone_number
+        
+        return user_info
 
 
 class EnterpriseUser(models.Model):
@@ -56,7 +73,7 @@ class EnterpriseUser(models.Model):
     role = models.IntegerField(choices=ROLE_CHOICES, default=1)
     position = models.CharField(max_length=255, default='待完善')
     # 工龄
-    work_age = models.IntegerField(default=0)
+    work_age = models.CharField(max_length=255, default='待完善')
     phone_number = models.CharField(max_length=255, default='待完善')
 
 
@@ -94,3 +111,16 @@ class PostRecruitment(models.Model):
     education = models.CharField(max_length=255)
     # 应聘人员,关联用户,一个岗位可以有多个应聘人员
     user = models.ManyToManyField('enterprise.User')
+    # 已录用人员
+    accepted_user = models.ManyToManyField('enterprise.User', related_name='be_accepted_post')
+
+
+class Invitation(models.Model):
+    # 邀请人
+    from_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='invite')
+    # 被邀请人
+    to_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='be_invited')
+    # 对象id
+    obj_id = models.IntegerField()
+    # 是否已经处理过
+    is_handled = models.BooleanField(default=False)
