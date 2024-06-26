@@ -1,5 +1,5 @@
 from enterprise.models import User, Enterprise, EnterpriseUser
-from utils.qos import upload_file
+from utils.qos import upload_file, get_file
 from utils.response import response
 from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION_ERROR
 from utils.view_decorator import login_required, allowed_methods
@@ -26,20 +26,20 @@ def createEnterprise(request):
     if not all([name, intro, img]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
     # 使用qos对象存储上传图片
-    img_url = 'enterprise_' + img.name
+    img_key = 'enterprise_' + str(user.id) + '_' + img.name
     # 先保存在本地Static文件中
     # 输出当前路径
-    with open('./Static/' + img_url, 'wb') as f:
+    with open('./Static/' + img_key, 'wb') as f:
         for chunk in img.chunks():
             f.write(chunk)
     # 上传到qos
-    if not upload_file(img_url, 'Static/' + img_url):
+    if not upload_file(img_key, 'Static/' + img_key):
         return response(code=SERVER_ERROR, msg='上传图片失败')
     # 上传成功,删除本地文件
     import os
-    os.remove('./Static/' + img_url)
+    os.remove('./Static/' + img_key)
     # 创建企业
-    enterprise = Enterprise.objects.create(name=name, intro=intro, img_url=img_url)
+    enterprise = Enterprise.objects.create(name=name, intro=intro, img_url=img_key)
     enterprise.save()
     # 关联企业管理员
     enterprise_user = EnterpriseUser.objects.create(user=user, enterprise=enterprise, role=0)
@@ -142,3 +142,48 @@ def exitEnterprise(request):
     message = Message.objects.create(**message_params)
     message.save()
     return response(msg='退出成功')
+
+
+@allowed_methods(['GET'])
+@login_required
+def getEEInfo(request):
+    """
+    获取企业信息和员工列表
+    """
+    user = request.user
+    user: User
+    # 查看用户是否为企业用户
+    if user.enterprise_user is None:
+        return response(code=PERMISSION_ERROR, msg='您不是企业用户')
+    enterprise = user.enterprise_user.enterprise
+    # 获取企业icon等信息
+    enterprise: Enterprise
+    enterprise_img_key = enterprise.img_url
+    enterprise_img_url = get_file(enterprise_img_key)
+    if enterprise_img_url == '':
+        return response(code=SERVER_ERROR, msg='获取图片失败')
+    enterprise_info = {
+        'id': enterprise.id,
+        'name': enterprise.name,
+        'img_url': enterprise_img_url,
+    }
+    # 获取企业员工列表
+    employee_list = []
+    for employee in enterprise.enterpriseuser_set.all():
+        # 获取员工头像等信息
+        employee: EnterpriseUser
+        employee_user = employee.user
+        employee_user: User
+        employee_avatar_key = employee_user.avatar_key
+        employee_avatar_url = get_file(employee_avatar_key)
+        employee_list.append({
+            'id': employee.user.id,
+            'position': employee.position,
+            'work_age': employee.work_age,
+            'img_url': employee_avatar_url,
+        })
+    data = {
+        'enterprise_info': enterprise_info,
+        'employee_list': employee_list,
+    }
+    return response(data=data)
