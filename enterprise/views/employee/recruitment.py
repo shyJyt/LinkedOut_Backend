@@ -7,7 +7,7 @@ from utils.view_decorator import login_required, allowed_methods
 
 @allowed_methods(['POST'])
 @login_required
-def sendResume(request):
+def send_resume(request):
     """
     投递简历
     用户投递简历
@@ -33,7 +33,7 @@ def sendResume(request):
 
 @allowed_methods(['POST'])
 @login_required
-def acceptHire(request):
+def accept_hire(request):
     """
     接受录用
     用户接受录用

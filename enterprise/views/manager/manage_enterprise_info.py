@@ -7,7 +7,7 @@ from utils.view_decorator import login_required, allowed_methods
 
 @allowed_methods(['POST'])
 @login_required
-def updateEnterpriseInfo(request):
+def update_enterprise_info(request):
     """
     企业管理员可修改企业信息,如名称、简介、图片等
     """

@@ -5,7 +5,7 @@ from utils.view_decorator import allowed_methods
 
 
 @allowed_methods(['GET'])
-def searchEnterprise(request):
+def search_enterprise(request):
     """
     搜索企业
     用户搜索企业
@@ -26,7 +26,7 @@ def searchEnterprise(request):
 
 
 @allowed_methods(['GET'])
-def getEnterpriseInfo(request):
+def get_enterprise_info(request):
     """
     获取企业信息
     用户查看企业信息

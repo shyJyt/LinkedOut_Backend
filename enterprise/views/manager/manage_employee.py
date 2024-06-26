@@ -7,7 +7,7 @@ from utils.view_decorator import login_required, allowed_methods
 
 @allowed_methods(['POST'])
 @login_required
-def addEmployee(request):
+def add_employee(request):
     """
     添加员工
     企业管理员添加员工
@@ -49,7 +49,7 @@ def addEmployee(request):
 
 @allowed_methods(['POST'])
 @login_required
-def expelEmployee(request):
+def expel_employee(request):
     """
     开除员工
     企业管理员开除员工

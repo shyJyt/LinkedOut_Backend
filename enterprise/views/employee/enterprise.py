@@ -10,7 +10,7 @@ from channels.layers import get_channel_layer
 
 @allowed_methods(['POST'])
 @login_required
-def createEnterprise(request):
+def create_enterprise(request):
     """
     创建企业
     用户创建企业时，需填写企业名称、简介、图片等
@@ -53,7 +53,7 @@ def createEnterprise(request):
 
 @allowed_methods(['POST'])
 @login_required
-def joinEnterprise(request):
+def join_enterprise(request):
     """
     加入企业
     用户加入企业
@@ -88,7 +88,7 @@ def joinEnterprise(request):
 
 @allowed_methods(['POST'])
 @login_required
-def completeEnterpriseInfo(request):
+def complete_enterprise_info(request):
     """
     完善信息
     企业用户完善企业信息,如工龄、岗位等
@@ -115,7 +115,7 @@ def completeEnterpriseInfo(request):
 
 @allowed_methods(['POST'])
 @login_required
-def exitEnterprise(request):
+def exit_enterprise(request):
     """
     退出企业
     用户退出企业
@@ -161,7 +161,7 @@ def exitEnterprise(request):
 
 @allowed_methods(['GET'])
 @login_required
-def getEEInfo(request):
+def get_ee_info(request):
     """
     获取企业信息和员工列表
     """

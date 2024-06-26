@@ -5,7 +5,7 @@ from utils.view_decorator import allowed_methods
 
 
 @allowed_methods(['GET'])
-def getRecruitment(request):
+def get_recruitment(request):
     """
     获取招聘信息
     用户查看某个企业招聘信息
@@ -28,7 +28,7 @@ def getRecruitment(request):
 
 
 @allowed_methods(['GET'])
-def getPostRecruitment(request):
+def get_post_recruitment(request):
     """
     获取岗位招聘信息
     用户查看某个企业某个岗位的招聘信息
@@ -53,7 +53,7 @@ def getPostRecruitment(request):
 
 
 @allowed_methods(['GET'])
-def searchPost(request):
+def search_post(request):
     """
     筛选岗位,条件为以下之一:
     岗位名称，工作地点，薪资待遇（上限/下限/面议），

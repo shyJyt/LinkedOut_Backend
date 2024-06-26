@@ -8,7 +8,7 @@ from utils.qos import get_file
 
 @allowed_methods(['POST'])
 @login_required
-def postRecruitment(request):
+def post_recruitment(request):
     """
     发布招聘
     企业管理员发布招聘岗位要求和数量:
@@ -65,7 +65,7 @@ def postRecruitment(request):
 
 @allowed_methods(['GET'])
 @login_required
-def getCandidates(request):
+def get_candidates(request):
     """
     获取相应岗位下的相应人员列表
     返回用户id和real_name
@@ -98,7 +98,7 @@ def getCandidates(request):
 
 @allowed_methods(['GET'])
 @login_required
-def getResume(request):
+def get_resume(request):
     """
     获取某个应聘者的简历
     """
