@@ -4,6 +4,8 @@ from utils.response import response
 from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION_ERROR
 from utils.view_decorator import login_required, allowed_methods
 from social.models import Message
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 
 @allowed_methods(['POST'])
@@ -141,6 +143,19 @@ def exitEnterprise(request):
     }
     message = Message.objects.create(**message_params)
     message.save()
+    # 提醒当前用户有新消息
+    user_id = user.id
+    room_group_name = f'system_message_{user_id}'
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        room_group_name,
+        {
+            'type': 'send_message',
+            'message': '测试消息'
+        }
+    )
+
     return response(msg='退出成功')
 
 
@@ -166,6 +181,7 @@ def getEEInfo(request):
         'id': enterprise.id,
         'name': enterprise.name,
         'img_url': enterprise_img_url,
+        'intro': enterprise.intro,
     }
     # 获取企业员工列表
     employee_list = []
@@ -177,7 +193,8 @@ def getEEInfo(request):
         employee_avatar_key = employee_user.avatar_key
         employee_avatar_url = get_file(employee_avatar_key)
         employee_list.append({
-            'id': employee.user.id,
+            'id': employee.id,
+            'real_name': employee.user.real_name,
             'position': employee.position,
             'work_age': employee.work_age,
             'img_url': employee_avatar_url,

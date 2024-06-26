@@ -68,7 +68,6 @@ def searchPost(request):
     enterprise_id = request.GET.get('enterprise_id', None)
     if not any([post_name, work_place, salary_range, education, work_experience_range, enterprise_id]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
-    post = None
     # 筛选企业,如果有企业id,先用企业id筛出一个queryset,再用queryset筛选岗位
     if enterprise_id:
         enterprise = Enterprise.objects.filter(id=enterprise_id).first()
@@ -84,14 +83,16 @@ def searchPost(request):
     if work_place:
         post = post.filter(work_place__contains=work_place)
     if salary_range:
+        salary_range = [i for i in salary_range[0].split(',')]
         if salary_range[0] == '-1':
             salary = '面议'
         else:
-            salary = str(salary_range[0]) + '-' + str(salary_range[1]) + '元'
+            salary = str(salary_range[0]) + '-' + str(salary_range[1]) + 'k'
         post = post.filter(salary=salary)
     if education:
         post = post.filter(education=education)
     if work_experience_range:
+        work_experience_range = [i for i in work_experience_range[0].split(',')]
         if work_experience_range[0] == '-1':
             work_experience = '无要求'
         else:
@@ -108,5 +109,6 @@ def searchPost(request):
             'salary': p.salary,
             'education': p.education,
             'work_experience': p.work_experience,
+            'recruit_number': p.recruit_number
         })
     return response(msg='获取岗位信息成功', data=data)

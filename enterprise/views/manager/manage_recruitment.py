@@ -39,11 +39,13 @@ def postRecruitment(request):
     if not post:
         post = Post.objects.create(name=post_name)
         post.save()
-    # 薪资和经验处理
+    # 薪资和经验处理 形式 ['0, 100'],先转为[‘0’，‘100’]
+    salary_range = [i for i in salary_range[0].split(',')]
     if salary_range[0] == '-1':
         salary = '面议'
     else:
-        salary = str(salary_range[0]) + '-' + str(salary_range[1]) + '元'
+        salary = str(salary_range[0]) + '-' + str(salary_range[1]) + 'k'
+    work_experience_range = [i for i in work_experience_range[0].split(',')]
     if work_experience_range[0] == '-1':
         work_experience = '无要求'
     else:
@@ -55,7 +57,10 @@ def postRecruitment(request):
                                                       work_experience=work_experience,
                                                       requirement=job_requirements)
     post_recruitment.save()
-    return response(msg='发布成功')
+    data = {
+        'post_id': post_recruitment.id
+    }
+    return response(msg='发布成功', data=data)
 
 
 @allowed_methods(['GET'])
@@ -79,9 +84,14 @@ def getCandidates(request):
     data = []
     post_recruitment: PostRecruitment
     for u in post_recruitment.user.all():
+        # 获取应聘人员简历,头像
+        resume_url = get_file(u.resume_key)
+        avatar_url = get_file(u.avatar_key)
         data.append({
             'user_id': u.id,
             'real_name': u.real_name,
+            'resume_url': resume_url,
+            'avatar_url': avatar_url
         })
     return response(data=data)
 

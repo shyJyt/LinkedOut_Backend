@@ -18,7 +18,6 @@ JWT_KEY = 'linked_out'
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
@@ -56,10 +55,11 @@ CORS_ALLOW_HEADERS = (
     'token',
 )
 
-
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
+    "channels",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "user.apps.UserConfig",
     "enterprise.apps.EnterpriseConfig",
-    "social.apps.SocialConfig"
+    "social.apps.SocialConfig",
 ]
 
 MIDDLEWARE = [
@@ -102,12 +102,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "LinkedOut_Backend.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
-   # Use Mysql
+    # Use Mysql
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': MYSQL_DATABASE,
@@ -117,7 +116,6 @@ DATABASES = {
         'PORT': MYSQL_PORT,
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -137,7 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
@@ -148,7 +145,6 @@ TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 
 USE_TZ = False
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
@@ -166,3 +162,19 @@ EMAIL_PORT = 25
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = BUAA_MAIL_USER
 EMAIL_HOST_PASSWORD = BUAA_MAIL_TOKEN
+
+ASGI_APPLICATION = "LinkedOut_Backend.routing.application"
+CHANNEL_LAYERS = {
+    # "default": {
+    #     "BACKEND": "channels_redis.core.RedisChannelLayer",
+    #     "CONFIG": {
+    #         "hosts": [
+    #             # ("127.0.0.1", 6379),
+    #             "redis://127.0.0.1:6379/3",
+    #         ],
+    #     },
+    # },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
