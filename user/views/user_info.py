@@ -2,7 +2,7 @@ import os
 
 from enterprise.models import User, EnterpriseUser
 
-from utils.qos import upload_file, save_file_local, get_file
+from utils.qos import upload_file, save_file_local, generate_time_stamp
 from utils.view_decorator import allowed_methods, login_required, guest_and_user
 from utils.response import response
 from utils.status_code import PARAMS_ERROR, SUCCESS, MYSQL_ERROR, OSS_ERROR
@@ -46,7 +46,7 @@ def update_user_info(request):
         user.github_link = github_link
     if avatar:
         local_file = save_file_local(avatar)
-        key = str(user.id) + '_avatar.png'
+        key = str(user.id) + '_avatar_'+ generate_time_stamp() + '.png'
         # 上传到七牛云
         ret = upload_file(key, local_file)
         os.remove(local_file)
@@ -71,7 +71,7 @@ def upload_resume(request):
 
     if resume:
         local_file = save_file_local(resume)
-        key = str(user.id) + '_resume.pdf'
+        key = str(user.id) + '_resume_'+ generate_time_stamp() + '.pdf'
         # 上传到七牛云
         ret = upload_file(key, local_file)
         os.remove(local_file)
