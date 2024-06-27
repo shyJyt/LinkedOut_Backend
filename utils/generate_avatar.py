@@ -11,7 +11,9 @@ __all__ = ['render_identicon', 'IdenticonRendererBase']
 class Matrix2D(list):
     """Matrix for Patch rotation"""
 
-    def __init__(self, initial=[0.] * 9):
+    def __init__(self, initial=None):
+        if initial is None:
+            initial = [0.] * 9
         assert isinstance(initial, list) and len(initial) == 9
         list.__init__(self, initial)
 
@@ -44,41 +46,28 @@ class Matrix2D(list):
         return self[0:6]
 
     @classmethod
-    def translate(kls, x, y):
-        return kls([1.0, 0.0, float(x),
+    def translate(cls, x, y):
+        return cls([1.0, 0.0, float(x),
                     0.0, 1.0, float(y),
                     0.0, 0.0, 1.0])
 
     @classmethod
-    def scale(kls, x, y):
-        return kls([float(x), 0.0, 0.0,
+    def scale(cls, x, y):
+        return cls([float(x), 0.0, 0.0,
                     0.0, float(y), 0.0,
                     0.0, 0.0, 1.0])
 
-    """
-    # need `import math`
     @classmethod
-    def rotate(kls, theta, pivot=None):
-        c = math.cos(theta)
-        s = math.sin(theta)
-        matR = kls([c, -s, 0., s, c, 0., 0., 0., 1.])
-        if not pivot:
-            return matR
-        return kls.translate(-pivot[0], -pivot[1]) * matR *
-            kls.translate(*pivot)
-    """
-
-    @classmethod
-    def rotateSquare(kls, theta, pivot=None):
+    def rotateSquare(cls, theta, pivot=None):
         theta = theta % 4
         c = [1., 0., -1., 0.][theta]
         s = [0., 1., 0., -1.][theta]
 
-        matR = kls([c, -s, 0., s, c, 0., 0., 0., 1.])
+        mat_r = cls([c, -s, 0., s, c, 0., 0., 0., 1.])
         if not pivot:
-            return matR
-        return kls.translate(-pivot[0], -pivot[1]) * matR * \
-            kls.translate(*pivot)
+            return mat_r
+        return cls.translate(-pivot[0], -pivot[1]) * mat_r * \
+            cls.translate(*pivot)
 
 
 class IdenticonRendererBase(object):
@@ -86,7 +75,7 @@ class IdenticonRendererBase(object):
 
     def __init__(self, code):
         """
-        @param code code for icon
+        @param code for icon
         """
         if not isinstance(code, int):
             code = int(code)
@@ -96,12 +85,12 @@ class IdenticonRendererBase(object):
         """
         render identicon to PIL.Image
 
-        @param size identicon patchsize. (image size is 3 * [size])
+        @param size identicon patch size. (image size is 3 * [size])
         @return PIL.Image
         """
 
         # decode the code
-        middle, corner, side, foreColor, backColor = self.decode(self.code)
+        middle, corner, side, fore_color, back_color = self.decode(self.code)
 
         # make image
         image = Image.new("RGB", (size * 3, size * 3))
@@ -113,8 +102,8 @@ class IdenticonRendererBase(object):
         kwds = {
             'draw': draw,
             'size': size,
-            'foreColor': foreColor,
-            'backColor': backColor}
+            'foreColor': fore_color,
+            'backColor': back_color}
         # middle patch
         self.drawPatch((1, 1), middle[2], middle[1], middle[0], **kwds)
 
@@ -132,30 +121,25 @@ class IdenticonRendererBase(object):
 
         return image
 
-    def drawPatch(self, pos, turn, invert, type, draw, size, foreColor,
-                  backColor):
-        """
-        @param size patch size
-        """
-        path = self.PATH_SET[type]
+    def drawPatch(self, pos, turn, invert, type_, draw, size, fore_color,
+                  back_color):
+        path = self.PATH_SET[type_]
         if not path:
             # blank patch
             invert = not invert
             path = [(0., 0.), (1., 0.), (1., 1.), (0., 1.), (0., 0.)]
         patch = ImagePath.Path(path)
         if invert:
-            foreColor, backColor = backColor, foreColor
+            fore_color, back_color = back_color, fore_color
 
-        mat = Matrix2D.rotateSquare(turn, pivot=(0.5, 0.5)) * \
-              Matrix2D.translate(*pos) * \
-              Matrix2D.scale(size, size)
+        mat = Matrix2D.rotateSquare(turn, pivot=(0.5, 0.5)) * Matrix2D.translate(*pos) * Matrix2D.scale(size, size)
 
         patch.transform(mat.for_PIL())
         draw.rectangle((pos[0] * size, pos[1] * size, (pos[0] + 1) * size,
-                        (pos[1] + 1) * size), fill=backColor)
-        draw.polygon(patch, fill=foreColor, outline=foreColor)
+                        (pos[1] + 1) * size), fill=back_color)
+        draw.polygon(patch, fill=fore_color, outline=fore_color)
 
-    ### virtual functions
+    # virtual functions
     def decode(self, code):
         raise NotImplementedError
 
@@ -163,7 +147,7 @@ class IdenticonRendererBase(object):
 class DonRenderer(IdenticonRendererBase):
     """
     Don Park's implementation of identicon
-    see : http://www.docuverse.com/blog/donpark/2007/01/19/identicon-updated-and-source-released
+    see : https://www.docuverse.com/blog/donpark/2007/01/19/identicon-updated-and-source-released
     """
 
     PATH_SET = [
@@ -193,24 +177,24 @@ class DonRenderer(IdenticonRendererBase):
 
     def decode(self, code):
         # decode the code
-        middleType = self.MIDDLE_PATCH_SET[code & 0x03]
-        middleInvert = (code >> 2) & 0x01
-        cornerType = (code >> 3) & 0x0F
-        cornerInvert = (code >> 7) & 0x01
-        cornerTurn = (code >> 8) & 0x03
-        sideType = (code >> 10) & 0x0F
-        sideInvert = (code >> 14) & 0x01
-        sideTurn = (code >> 15) & 0x03
+        middle_type = self.MIDDLE_PATCH_SET[code & 0x03]
+        middle_invert = (code >> 2) & 0x01
+        corner_type = (code >> 3) & 0x0F
+        corner_invert = (code >> 7) & 0x01
+        corner_turn = (code >> 8) & 0x03
+        side_type = (code >> 10) & 0x0F
+        side_invert = (code >> 14) & 0x01
+        side_turn = (code >> 15) & 0x03
         blue = (code >> 16) & 0x1F
         green = (code >> 21) & 0x1F
         red = (code >> 27) & 0x1F
 
-        foreColor = (red << 3, green << 3, blue << 3)
+        fore_color = (red << 3, green << 3, blue << 3)
 
-        return (middleType, middleInvert, 0), \
-            (cornerType, cornerInvert, cornerTurn), \
-            (sideType, sideInvert, sideTurn), \
-            foreColor, ImageColor.getrgb('white')
+        return (middle_type, middle_invert, 0), \
+            (corner_type, corner_invert, corner_turn), \
+            (side_type, side_invert, side_turn), \
+            fore_color, ImageColor.getrgb('white')
 
 
 def render_identicon(name, renderer=None):
