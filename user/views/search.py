@@ -1,4 +1,4 @@
-from enterprise.models import User
+from enterprise.models import User, Post
 
 from utils.view_decorator import allowed_methods, guest_and_user
 from utils.response import response
@@ -32,3 +32,19 @@ def search_user(request):
         return response(SUCCESS, '搜索用户成功！', data=user_list)
     else:
         return response(PARAMS_ERROR, '关键字不可为空！', error=True)
+
+
+@allowed_methods(['GET'])
+def get_all_post(request):
+    """
+    获取所有岗位
+    """
+    post_list = Post.objects.all()
+    data = []
+    for post in post_list:
+        data.append({
+            'id': post.id,
+            'name': post.name
+        })
+    
+    return response(SUCCESS, '获取所有岗位成功！', data=data)
