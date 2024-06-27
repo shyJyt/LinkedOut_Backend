@@ -6,6 +6,7 @@ from enterprise.models import User
 from utils.view_decorator import allowed_methods, login_required, guest_and_user
 from utils.response import response
 from utils.status_code import PARAMS_ERROR, SUCCESS
+from utils.qos import get_file
 
 @allowed_methods(['GET'])
 @guest_and_user
@@ -72,6 +73,8 @@ def get_recommend_recruit(request):
                 'recruit_id': recruit_info.id,
                 'enterprise_id': recruit_info.enterprise.id,
                 'enterprise_name': recruit_info.enterprise.name,
+                'enterprise_img_url': get_file(recruit_info.enterprise.img_url),
+                'post_name': recruit_info.post.name,
                 'recruit_number': recruit_info.recruit_number,
                 'work_place': recruit_info.work_place,
                 'salary': recruit_info.salary,
