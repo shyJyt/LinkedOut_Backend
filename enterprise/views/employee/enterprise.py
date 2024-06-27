@@ -44,7 +44,7 @@ def create_enterprise(request):
     enterprise = Enterprise.objects.create(name=name, intro=intro, img_url=img_key)
     enterprise.save()
     # 关联企业管理员
-    enterprise_user = EnterpriseUser.objects.create(user=user, enterprise=enterprise, role=0)
+    enterprise_user = EnterpriseUser.objects.create(enterprise=enterprise, role=0)
     enterprise_user.save()
     user.enterprise_user = enterprise_user
     user.save()
