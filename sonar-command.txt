@@ -1,0 +1,1 @@
+sonar-scanner.bat -Dsonar.projectKey=prj_2024_group10_LinkedOut_backend -Dsonar.sources=. -Dsonar.host.url=http://10.134.136.91:9000 -Dsonar.login=ad067802df640ede512a767d6c670920af739faa
