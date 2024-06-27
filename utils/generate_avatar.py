@@ -102,19 +102,19 @@ class IdenticonRendererBase(object):
         kwds = {
             'draw': draw,
             'size': size,
-            'foreColor': fore_color,
-            'backColor': back_color}
+            'fore_color': fore_color,
+            'back_color': back_color}
         # middle patch
         self.drawPatch((1, 1), middle[2], middle[1], middle[0], **kwds)
 
         # side patch
-        kwds['type'] = side[0]
+        kwds['type_'] = side[0]
         for i in range(4):
             pos = [(1, 0), (2, 1), (1, 2), (0, 1)][i]
             self.drawPatch(pos, side[2] + 1 + i, side[1], **kwds)
 
         # corner patch
-        kwds['type'] = corner[0]
+        kwds['type_'] = corner[0]
         for i in range(4):
             pos = [(0, 0), (2, 0), (2, 2), (0, 2)][i]
             self.drawPatch(pos, corner[2] + 1 + i, corner[1], **kwds)
