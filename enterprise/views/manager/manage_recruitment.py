@@ -1,3 +1,6 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from enterprise.models import Post, PostRecruitment, User
 from social.models import Message
 from utils.response import response
@@ -142,35 +145,49 @@ def hire(request):
     if not all([candidate_id, post_id]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
     # 查看招聘信息是否存在
-    post_recruitment = PostRecruitment.objects.filter(id=post_id).first()
-    if not post_recruitment:
+    post_recruitment_ = PostRecruitment.objects.filter(id=post_id).first()
+    if not post_recruitment_:
         return response(code=PARAMS_ERROR, msg='招聘信息不存在')
-    candidate = post_recruitment.user.filter(id=candidate_id).first()
+    candidate = post_recruitment_.user.filter(id=candidate_id).first()
     if not candidate:
         return response(code=PARAMS_ERROR, msg='候选人不存在')
     # 是否是自己,即企业管理员
     if candidate == user:
         return response(code=PERMISSION_ERROR, msg='您不能录用自己')
     # 是否已经被录用
-    if candidate in post_recruitment.accepted_user.all():
+    if candidate in post_recruitment_.accepted_user.all():
         return response(code=MYSQL_ERROR, msg='该用户已被录用')
     # 发送消息
     message_params = {
-        'from_user_id': user,
-        'to_user_id': candidate,
+        'from_user': user,
+        'to_user': candidate,
         'type': 0,
         'title': '录用信息',
         'content': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用',
-        'obj_id': post_recruitment.id,
+        'obj_id': post_recruitment_.id,
     }
-    Message.objects.create(**message_params)
+    message = Message.objects.create(**message_params)
+    message.save()
+
+    # 给被录用的用户发送消息
+    candidate_id = candidate.id
+    channel_layer = get_channel_layer()
+    group_room_name = f'system_message_{candidate_id}'
+    async_to_sync(channel_layer.group_send)(
+        group_room_name,
+        {
+            'type': 'send_message',
+            'message': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用'
+        }
+    )
+
     # 对应岗位招聘信息中的招聘人数减一
-    number = int(post_recruitment.recruit_number)
+    number = int(post_recruitment_.recruit_number)
     number -= 1
-    post_recruitment.recruit_number = str(number)
-    post_recruitment.save()
+    post_recruitment_.recruit_number = str(number)
+    post_recruitment_.save()
     # 将候选人添加到已录用人员中
-    post_recruitment.accepted_user.add(candidate)
-    post_recruitment.save()
+    post_recruitment_.accepted_user.add(candidate)
+    post_recruitment_.save()
     # 将剩余的招聘人数返回
-    return response(msg='发送成功', data={'recruit_number': post_recruitment.recruit_number})
+    return response(msg='发送成功', data={'recruit_number': post_recruitment_.recruit_number})
