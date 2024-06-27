@@ -56,7 +56,7 @@ def accept_hire(request):
         return response(code=PERMISSION_ERROR, msg='您未被录用')
     # 为用户创建企业用户
     enterprise_user = EnterpriseUser.objects.create(enterprise=post_recruitment.enterprise,
-                                                    user=user, role=1, position=post_recruitment.post.name)
+                                                    role=1, position=post_recruitment.post.name)
     enterprise_user.save()
     user.enterprise_user = enterprise_user
     user.save()

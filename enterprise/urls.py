@@ -28,5 +28,5 @@ urlpatterns = [
     path('hire/', hire),
     path('acceptHire/', accept_hire),
     path('getEEInfo/', get_ee_info),
-    path('searche_post_by_name/', search_post_by_name)
+    path('search_post_by_name/', search_post_by_name)
 ]
