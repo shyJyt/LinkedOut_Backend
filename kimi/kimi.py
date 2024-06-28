@@ -1,22 +1,24 @@
+import sys
 from pathlib import Path
 from openai import OpenAI
+from openai.types.file_deleted import FileDeleted
 
 from config import MOONSHOT_API_KEY
- 
+
 client = OpenAI(
-    api_key = MOONSHOT_API_KEY,
-    base_url = "https://api.moonshot.cn/v1",
+    api_key=MOONSHOT_API_KEY,
+    base_url="https://api.moonshot.cn/v1",
 )
- 
+
 # xlnet.pdf 是一个示例文件, 我们支持 pdf, doc 以及图片等格式, 对于图片和 pdf 文件，提供 ocr 相关能力
 file_object = client.files.create(file=Path("test.pdf"), purpose="file-extract")
- 
+
 # 获取结果
 # file_content = client.files.retrieve_content(file_id=file_object.id)
 # 注意，之前 retrieve_content api 在最新版本标记了 warning, 可以用下面这行代替
 # 如果是旧版本，可以用 retrieve_content
 file_content = client.files.content(file_id=file_object.id).text
- 
+
 # 把它放进请求中
 messages = [
     {
@@ -27,14 +29,17 @@ messages = [
         "role": "system",
         "content": file_content,
     },
-    {"role": "user", "content": "请简单介绍 xlnet.pdf 讲了啥"},
+    {"role": "user", "content": "请简单介绍 test.pdf 讲了啥"},
 ]
- 
+
 # 然后调用 chat-completion, 获取 Kimi 的回答
 completion = client.chat.completions.create(
-  model="moonshot-v1-32k",
-  messages=messages,
-  temperature=0.3,
+    model="moonshot-v1-32k",
+    messages=messages,
+    temperature=0.3,
 )
- 
+
 print(completion.choices[0].message)
+
+if __name__ == "__main__":
+    pass
