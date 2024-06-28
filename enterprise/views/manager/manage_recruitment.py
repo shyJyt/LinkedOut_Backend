@@ -1,7 +1,7 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-from enterprise.models import Post, PostRecruitment, User
+from enterprise.models import Post, PostRecruitment, User, Candidate
 from social.models import Message
 from utils.response import response
 from utils.status_code import *
@@ -54,14 +54,14 @@ def post_recruitment(request):
     else:
         work_experience = str(work_experience_range[0]) + '-' + str(work_experience_range[1]) + '年'
     # 创建招聘信息
-    post_recruitment = PostRecruitment.objects.create(enterprise=user.enterprise_user.enterprise, post=post,
-                                                      recruit_number=recruit_number, work_content=work_content,
-                                                      work_place=work_place, salary=salary, education=education,
-                                                      work_experience=work_experience,
-                                                      requirement=job_requirements)
-    post_recruitment.save()
+    post_recruitment_ = PostRecruitment.objects.create(enterprise=user.enterprise_user.enterprise, post=post,
+                                                       recruit_number=recruit_number, work_content=work_content,
+                                                       work_place=work_place, salary=salary, education=education,
+                                                       work_experience=work_experience,
+                                                       requirement=job_requirements)
+    post_recruitment_.save()
     data = {
-        'post_id': post_recruitment.id
+        'post_id': post_recruitment_.id
     }
     return response(msg='发布成功', data=data)
 
@@ -81,14 +81,15 @@ def get_candidates(request):
     post_recruitment_id = request.GET.get('post_recruitment_id', None)
     if not post_recruitment_id:
         return response(code=PARAMS_ERROR, msg='参数不完整')
-    post_recruitment = PostRecruitment.objects.filter(id=post_recruitment_id).first()
-    if not post_recruitment:
+    post_recruitment_ = PostRecruitment.objects.filter(id=post_recruitment_id).first()
+    if not post_recruitment_:
         return response(code=PARAMS_ERROR, msg='招聘信息不存在')
     data = []
-    post_recruitment: PostRecruitment
-    for u in post_recruitment.user.all():
+    post_recruitment_: PostRecruitment
+    for u in post_recruitment_.candidates.all():
         # 获取应聘人员简历,头像
-        resume_url = get_file(u.resume_key)
+        resume_key = u.candidate_set.filter(post_recruitment_id=post_recruitment_id).first().resume_key
+        resume_url = get_file(resume_key)
         avatar_url = get_file(u.avatar_key)
         data.append({
             'user_id': u.id,
@@ -111,16 +112,16 @@ def get_resume(request):
     if user.enterprise_user is None or user.enterprise_user.role != 0:
         return response(code=PERMISSION_ERROR, msg='您不是企业管理员')
     user_id = request.GET.get('user_id', None)
-    if not user_id:
+    post_recruitment_id = request.GET.get('post_recruitment_id', None)
+    if not all([user_id, post_recruitment_id]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
-    user = User.objects.filter(id=user_id).first()
-    if not user:
-        return response(code=PARAMS_ERROR, msg='用户不存在')
+    # 找到此用户在对用岗位下的应聘信息
+    candidate = Candidate.objects.filter(post_recruitment_id=post_recruitment_id, user_id=user_id).first()
+    if not candidate:
+        return response(code=PARAMS_ERROR, msg='用户未应聘此岗位')
+    resume_key = get_file(candidate.resume_key)
+    resume_url = get_file(resume_key)
     # 返回简历url
-    if user.resume_key is None:
-        return response(code=PARAMS_ERROR, msg='用户未上传简历')
-    resume_url = get_file(user.resume_key)
-    print('here' + resume_url)
     if resume_url == '':
         return response(code=SERVER_ERROR, msg='获取简历失败')
     data = {
