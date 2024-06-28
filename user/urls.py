@@ -18,5 +18,5 @@ urlpatterns = [
     path('searchUser', search.search_user),
     path('getAllPost', search.get_all_post),
 
-    path('optimize_resume', others.optimize_resume),
+    path('optimizeResume', others.optimize_resume),
 ]
