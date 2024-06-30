@@ -43,7 +43,7 @@ def add_employee(request):
     message_params = {
         'from_user': user,
         'to_user': employee,
-        'type': 0,
+        'type': 5,
         'title': '邀请加入企业',
         'content': '管理员邀请你加入企业' + str(user.enterprise_user.enterprise.name),
         'obj_id': invitation.id,

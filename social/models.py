@@ -36,7 +36,10 @@ class Comment(models.Model):
 class Message(models.Model):
     from_user = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE, related_name='from_user')
     to_user = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE, related_name='to_user')
-    type = models.IntegerField(choices=((0, '系统消息'), (1, '点赞'), (2, '评论'), (3, '转发'), (4, '关注')), default=0)
+    type = models.IntegerField(choices=((0, '系统消息'), (1, '点赞'), (2, '评论'),
+                                        (3, '转发'), (4, '关注'), (5, '邀请'),
+                                        (6, '转让'), (7, '录用')
+                                        ), default=0)
     obj_id = models.IntegerField(null=True)
     title = models.CharField(max_length=50)
     content = models.TextField()

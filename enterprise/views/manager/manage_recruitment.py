@@ -160,7 +160,7 @@ def hire(request):
     message_params = {
         'from_user': user,
         'to_user': candidate,
-        'type': 0,
+        'type': 7,
         'title': '录用信息',
         'content': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用',
         'obj_id': post_recruitment_.id,
