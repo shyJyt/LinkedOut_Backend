@@ -1,12 +1,12 @@
 from django.db import IntegrityError
-from django.shortcuts import render
 
+from enterprise.models import User, EnterpriseUser, Enterprise
+from social.models import UserActivity, Comment, Message
+from utils.qos import get_file
 from utils.response import response
 from utils.status_code import *
 from utils.qos import get_file, save_file_local, upload_file
 from utils.view_decorator import allowed_methods, login_required, guest_and_user
-from enterprise.models import User, EnterpriseUser, Enterprise
-from social.models import UserActivity, Comment, Message
 
 
 # Create your views here.
@@ -19,6 +19,7 @@ def publish_activity(request):
     :return: [code, msg]
     """
     user = request.user
+    user: User
     enterprise_user = user.enterprise_user
     if enterprise_user and enterprise_user.enterprise:
         enterprise = enterprise_user.enterprise
@@ -195,7 +196,8 @@ def get_user_activity_list(request):
     try:
         activities = UserActivity.objects.filter(user_id=user_id).order_by('-create_time')
     except UserActivity.DoesNotExist:
-        activity_list = []
+        return response(SUCCESS, '获取用户动态列表成功！', data=[])
+
     activity_list = []
     for activity in activities:
         # 动态的评论列表
@@ -270,13 +272,13 @@ def get_enter_activity_list(request):
     if not enter_id:
         return response(PARAMS_ERROR, '请正确选择企业！', error=True)
     try:
-        enterprise = Enterprise.objects.get(id=enter_id)
+        Enterprise.objects.get(id=enter_id)
     except Enterprise.DoesNotExist:
         return response(PARAMS_ERROR, '该企业不存在！', error=True)
     try:
         activities = UserActivity.objects.filter(enterprise_id=enter_id).order_by('-like')
     except UserActivity.DoesNotExist:
-        activity_list = []
+        return response(SUCCESS, '获取用户动态列表成功！', data=[])
     activity_list = []
     for activity in activities:
         # 动态发布者信息
@@ -582,7 +584,7 @@ def get_message_list(request):
             for message in messages
         ]
         return response(SUCCESS, '获取消息列表成功！', data=message_list)
-    except Exception as e:
+    except Exception:
         return response(SERVER_ERROR, '获取消息列表失败！', error=True)
 
 

@@ -17,14 +17,14 @@ def save_file_local(file):
     """
     保存文件到本地
     :param file: 文件对象
-    :return: 文件名
+    :return: 文件路径
     """
     # 获取文件名
     file_name = file.name
     # 获取文件后缀名
     file_suffix = file_name.split('.')[-1]
     # 生成文件名
-    file_name = str(random.randint(100000, 999999)) + '.' + file_suffix
+    file_name = generate_time_stamp() + '.' + file_suffix
     # 保存文件
     file_path = 'tempFile/' + file_name
     with open(file_path, 'wb+') as f:

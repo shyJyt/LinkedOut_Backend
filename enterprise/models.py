@@ -111,7 +111,8 @@ class PostRecruitment(models.Model):
     # 教育背景
     education = models.CharField(max_length=255)
     # 应聘人员,关联用户,一个岗位可以有多个应聘人员
-    user = models.ManyToManyField('enterprise.User')
+    candidates = models.ManyToManyField('enterprise.User', through='enterprise.Candidate',
+                                        related_name='post_recruitment')
     # 已录用人员
     accepted_user = models.ManyToManyField('enterprise.User', related_name='be_accepted_post')
 
@@ -125,3 +126,9 @@ class Invitation(models.Model):
     obj_id = models.IntegerField()
     # 是否已经处理过
     is_handled = models.BooleanField(default=False)
+
+
+class Candidate(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    post_recruitment = models.ForeignKey('PostRecruitment', on_delete=models.CASCADE)
+    resume_key = models.CharField(max_length=100, null=True)

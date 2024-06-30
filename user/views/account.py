@@ -34,6 +34,7 @@ def login(request):
                 token = generate_token(user_info, 60 * 60 * 24)
                 data = {
                     'token': token,
+                    'user_id': user.id,
                     'nickname': user.nickname,
                     'avatar': get_file(user.avatar_key)
                 }

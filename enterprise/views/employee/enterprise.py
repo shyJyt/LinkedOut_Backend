@@ -44,7 +44,7 @@ def create_enterprise(request):
     enterprise = Enterprise.objects.create(name=name, intro=intro, img_url=img_key)
     enterprise.save()
     # 关联企业管理员
-    enterprise_user = EnterpriseUser.objects.create(user=user, enterprise=enterprise, role=0)
+    enterprise_user = EnterpriseUser.objects.create(enterprise=enterprise, role=0)
     enterprise_user.save()
     user.enterprise_user = enterprise_user
     user.save()
@@ -135,24 +135,24 @@ def exit_enterprise(request):
     user.save()
     # 给企业管理员发送消息
     message_params = {
-        'from_user_id': user,
-        'to_user_id': enterprise.enterpriseuser_set.filter(role=0).first().user,
+        'from_user': user,
+        'to_user': enterprise.enterpriseuser_set.filter(role=0).first().user,
         'type': 0,
         'title': '员工退出企业',
         'content': '员工' + str(user.real_name) + '退出了企业',
     }
     message = Message.objects.create(**message_params)
     message.save()
-    # 提醒当前用户有新消息
-    user_id = user.id
-    room_group_name = f'system_message_{user_id}'
-    channel_layer = get_channel_layer()
+    # 提醒管理员有新消息
+    manager_id = enterprise.enterpriseuser_set.filter(role=0).first().user.id
+    room_group_name = f'system_message_{manager_id}'
 
+    channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         room_group_name,
         {
             'type': 'send_message',
-            'message': '测试消息'
+            'message': f'员工{user.real_name}退出企业'
         }
     )
 
