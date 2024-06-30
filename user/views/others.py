@@ -33,5 +33,6 @@ def reduce_gpt_limit(request):
     user = request.user
     user: User
     user.gpt_limit = user.gpt_limit - 1
+    user.save()
 
     return response(SUCCESS, '减少简历优化次数成功！')
