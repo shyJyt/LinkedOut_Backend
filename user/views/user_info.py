@@ -24,6 +24,7 @@ def update_user_info(request):
     blog_link = request.POST.get('blog_link', None)
     github_link = request.POST.get('github_link', None)
     avatar = request.FILES.get('avatar', None)
+    print(avatar)
 
     if nickname:
         user.nickname = nickname

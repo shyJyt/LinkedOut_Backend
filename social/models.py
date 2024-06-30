@@ -11,13 +11,14 @@ class UserActivity(models.Model):
     is_forward = models.BooleanField(default=False)
     title = models.CharField(max_length=50)
     content = models.TextField()
+    images = models.JSONField(default=list)
     like = models.ManyToManyField(to='enterprise.User', related_name='like_user_activity')
     create_time = models.DateTimeField(auto_now_add=True)
 
     def to_string(self):
         return {
-            'user_id': self.user_id.id,
-            'enter_id': self.enter_id.id,
+            'user_id': self.user.id,
+            'enter_id': self.enterprise.id,
             'title': self.title,
             'content': self.content,
             'is_forward': self.is_forward,
