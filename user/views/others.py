@@ -2,6 +2,8 @@ import os
 
 from django.http import StreamingHttpResponse
 
+from enterprise.models import User
+
 from utils.view_decorator import allowed_methods, login_required
 from utils.response import response
 from utils.status_code import PARAMS_ERROR, SUCCESS
@@ -23,3 +25,13 @@ def optimize_resume(request):
         return StreamingHttpResponse(result, content_type='text/plain')
     else:
         return response(PARAMS_ERROR, '未上传简历！', error=True)
+    
+
+@allowed_methods(['GET'])
+@login_required
+def reduce_gpt_limit(request):
+    user = request.user
+    user: User
+    user.gpt_limit = user.gpt_limit - 1
+
+    return response(SUCCESS, '减少简历优化次数成功！')
