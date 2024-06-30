@@ -550,6 +550,7 @@ def get_message_list(request):
                 'content': message.content,
                 'is_read': message.is_read,
                 'create_time': message.create_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'obj_id': message.obj_id if message.obj_id else '',
             }
             for message in messages
         ]

@@ -128,6 +128,17 @@ class Invitation(models.Model):
     is_handled = models.BooleanField(default=False)
 
 
+class Transfer(models.Model):
+    # 转让人
+    from_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='transfer')
+    # 被转让人
+    to_user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='be_transferred')
+    # 对象id
+    obj_id = models.IntegerField()
+    # 是否已经处理过
+    is_handled = models.BooleanField(default=False)
+
+
 class Candidate(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE)
     post_recruitment = models.ForeignKey('PostRecruitment', on_delete=models.CASCADE)

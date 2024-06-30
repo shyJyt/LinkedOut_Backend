@@ -1,7 +1,7 @@
-from enterprise.models import User, Enterprise, EnterpriseUser
+from enterprise.models import User, Enterprise, EnterpriseUser, Invitation
 from utils.qos import upload_file, get_file
 from utils.response import response
-from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION_ERROR
+from utils.status_code import PARAMS_ERROR, SERVER_ERROR, PERMISSION_ERROR, MYSQL_ERROR
 from utils.view_decorator import login_required, allowed_methods
 from social.models import Message
 from asgiref.sync import async_to_sync
@@ -60,30 +60,65 @@ def join_enterprise(request):
     """
     user = request.user
     user: User
-    # 查看用户是否为企业用户
-    if user.enterprise_user is not None:
-        return response(code=PERMISSION_ERROR, msg='您已经是企业用户')
     # 获取参数
-    enterprise_id = request.POST.get('enterprise_id', None)
-    if not enterprise_id:
+    invitation_id = request.POST.get('invitation_id', None)
+    action = request.POST.get('action', None)
+    if not all([invitation_id, action]):
         return response(code=PARAMS_ERROR, msg='参数不完整')
-    # 查找企业
-    enterprise = Enterprise.objects.filter(id=enterprise_id).first()
-    if not enterprise:
-        return response(code=PARAMS_ERROR, msg='企业不存在')
-    # 是否被邀请
-    invitation = user.be_invited.filter(obj_id=enterprise_id, is_handled=False).first()
+    # 查找对应邀请
+    invitation = user.be_invited.filter(id=invitation_id, is_handled=False).first()
     if not invitation:
-        return response(code=PERMISSION_ERROR, msg='您未被邀请')
-    # 创建企业用户
-    enterprise_user = EnterpriseUser.objects.create(enterprise=enterprise, role=1)
-    enterprise_user.save()
-    user.enterprise_user = enterprise_user
-    user.save()
-    # 处理邀请
-    invitation.is_handled = True
-    invitation.save()
-    return response(msg='加入成功')
+        return response(code=MYSQL_ERROR, msg='您没有未处理的对应邀请')
+    # action 1 为接受, 0 为拒绝
+    if action not in ['1', '0']:
+        return response(code=PARAMS_ERROR, msg='参数错误')
+    if action == '1':
+        # 查看用户是否为企业用户
+        if user.enterprise_user is not None:
+            return response(code=PERMISSION_ERROR, msg='您已经是企业用户')
+        invitation: Invitation
+        enterprise = invitation.from_user.enterprise_user.enterprise
+        if not enterprise:
+            return response(code=MYSQL_ERROR, msg='对应公司不存在')
+        # 创建企业用户
+        enterprise_user = EnterpriseUser.objects.create(enterprise=enterprise, role=1)
+        enterprise_user.save()
+        user.enterprise_user = enterprise_user
+        user.save()
+        # 处理邀请
+        invitation.is_handled = True
+        invitation.save()
+        # 将现有的邀请全部处理
+        for invitation in user.be_invited.filter(is_handled=False):
+            invitation.is_handled = True
+            invitation.save()
+    elif action == '0':
+        invitation.is_handled = True
+        invitation.save()
+    # 给邀请人发送消息
+    content = '员工' + str(user.real_name) + ('接受' if action == '1' else '拒绝') + '了您的邀请'
+    message_params = {
+        'from_user': user,
+        'to_user': invitation.from_user,
+        'type': 0,
+        'title': '企业邀请结果',
+        'content': content,
+        'obj_id': invitation.id
+    }
+    message = Message.objects.create(**message_params)
+    message.save()
+    # 提醒邀请人有新消息
+    room_group_name = f'system_message_{invitation.from_user.id}'
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        room_group_name,
+        {
+            'type': 'send_message',
+            'message': content,
+            'obj_id': invitation.id
+        }
+    )
+    return response(msg='处理成功')
 
 
 @allowed_methods(['POST'])
@@ -204,3 +239,75 @@ def get_ee_info(request):
         'employee_list': employee_list,
     }
     return response(data=data)
+
+
+@allowed_methods(['POST'])
+@login_required
+def accept_transfer(request):
+    """
+    接受管理员权限转让
+    """
+    user = request.user
+    user: User
+    # 查看用户是否为企业用户
+    if user.enterprise_user is None or user.enterprise_user.role != 1:
+        return response(code=PERMISSION_ERROR, msg='您不是企业员工')
+    # 获取参数
+    transfer_id = request.POST.get('transfer_id', None)
+    action = request.POST.get('action', None)
+    if not all([transfer_id, action]):
+        return response(code=PARAMS_ERROR, msg='参数不完整')
+    # 查找对应未处理的转让邀请
+    transfer = user.be_transferred.filter(id=transfer_id, is_handled=False).first()
+    if not transfer:
+        return response(code=MYSQL_ERROR, msg='您没有未处理的对应邀请')
+    if action not in ['1', '0']:
+        return response(code=PARAMS_ERROR, msg='参数错误')
+    new_manager = user.enterprise_user
+    if (not new_manager or new_manager.role != 1 or
+            new_manager.enterprise != transfer.from_user.enterprise_user.enterprise):
+        return response(code=MYSQL_ERROR, msg='您不是对应企业员工')
+    if action == '1':
+        # 更新企业新管理员
+        new_manager.role = 0
+        new_manager.save()
+        # 更改原管理员信息
+        original_manager = transfer.from_user.enterprise_user
+        original_manager.role = 1
+        original_manager.save()
+        # 处理转让
+        transfer.is_handled = True
+        transfer.save()
+    else:
+        # 拒绝转让
+        transfer.is_handled = True
+        transfer.save()
+    content = '员工' + str(user.real_name) + ('接受' if action == '1' else '拒绝') + '了您的管理员权限'
+    # 给原管理员发送消息
+    message_params = {
+        'from_user': user,
+        'to_user': transfer.from_user,
+        'type': 0,
+        'title': '管理员权限转让',
+        'content': content,
+        'obj_id': transfer.id
+    }
+    message = Message.objects.create(**message_params)
+    message.save()
+    # 提醒原管理员有新消息
+    manager_id = transfer.from_user.id
+    room_group_name = f'system_message_{manager_id}'
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        room_group_name,
+        {
+            'type': 'send_message',
+            'message': content,
+            'obj_id': transfer.id
+        }
+    )
+    # 将现有的管理员权限转让消息全部处理
+    for transfer in user.be_transferred.filter(is_handled=False):
+        transfer.is_handled = True
+        transfer.save()
+    return response(msg='处理成功')
