@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('upload_image/', views.upload_image, name='upload_image'),
     path('publish_activity/', views.publish_activity, name='publish_activity'),
     path('update_activity/', views.update_activity, name='update_activity'),
     path('delete_activity/', views.delete_activity, name='delete_activity'),

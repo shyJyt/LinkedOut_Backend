@@ -1,8 +1,12 @@
+import os
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from django.db import IntegrityError
 
 from enterprise.models import User, EnterpriseUser, Enterprise
 from social.models import UserActivity, Comment, Message
-from utils.qos import get_file
+from utils.qos import get_file, generate_time_stamp
 from utils.response import response
 from utils.status_code import *
 from utils.qos import get_file, save_file_local, upload_file
@@ -10,6 +14,28 @@ from utils.view_decorator import allowed_methods, login_required, guest_and_user
 
 
 # Create your views here.
+@allowed_methods(['POST'])
+@login_required
+def upload_image(request):
+    """
+    上传动态图片
+    :param request: title, content
+    :return: [code, msg]
+    """
+    user = request.user
+    image = request.FILES.get('image')
+
+    if image:
+        local_file = save_file_local(image)
+        key = f"{user.id}_embedded_image_{generate_time_stamp()}.png"
+        ret = upload_file(key, local_file)
+        os.remove(local_file)
+        if ret:
+            return response(SUCCESS, '图片上传成功！', data=get_file(key))
+        else:
+            return response(OSS_ERROR, '图片上传失败！', error=True)
+
+
 @allowed_methods(['POST'])
 @login_required
 def publish_activity(request):
@@ -28,23 +54,9 @@ def publish_activity(request):
 
     title = request.POST.get('title')
     content = request.POST.get('content')
-    image_list = request.FILES.get('images')
-    print(image_list)
     if not title or not content:
         return response(PARAMS_ERROR, '请正确填入动态标题和内容！', error=True)
     activity = UserActivity.objects.create(user=user, enterprise=enterprise, title=title, content=content)
-    images = []
-    if image_list:
-        i = 1
-        for image in image_list:
-            local_file = save_file_local(image)
-            key = str(activity.id) + '_' + i + '_embedded_image.png'
-            ret = upload_file(key, local_file)
-            if ret:
-                images.append(key)
-            else:
-                return response(OSS_ERROR, '图片上传失败！', error=True)
-    activity.images = images
     return response(SUCCESS, '动态发布成功！')
 
 
@@ -60,8 +72,7 @@ def update_activity(request):
     act_id = request.POST.get('activity_id')
     title = request.POST.get('title')
     content = request.POST.get('content')
-    image_list = request.FILES.get('images')
-    if not title or not content or not image_list:
+    if not title or not content:
         return response(PARAMS_ERROR, '请正确填入动态标题和内容！', error=True)
     try:
         activity = UserActivity.objects.get(id=act_id)
@@ -71,18 +82,6 @@ def update_activity(request):
             activity.title = title
         if content:
             activity.content = content
-        if image_list:
-            i = 1
-            images = []
-            for image in image_list:
-                local_file = save_file_local(image)
-                key = str(activity.id) + '_' + i + '_embedded_image.png'
-                ret = upload_file(key, local_file)
-                if ret:
-                    images.append(key)
-                else:
-                    return response(OSS_ERROR, '图片上传失败！', error=True)
-            activity.images = images
         activity.save()
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '动态不存在！', error=True)
