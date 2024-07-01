@@ -1,4 +1,9 @@
+from django.db import IntegrityError
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from enterprise.models import User, Enterprise
+from social.views.message import send_message
 from utils.response import response
 from utils.status_code import *
 from utils.view_decorator import allowed_methods, login_required
@@ -30,6 +35,18 @@ def follow_user(request):
     else:
         user.follow_user.add(following)
         msg = '关注成功！'
+        send_message(user, following, 4, user.id, '关注', f'用户 {user.nickname} 开始关注你啦！')
+        # 给被点赞的用户发送消息
+        followed_id = following.id
+        group_room_name = f'system_message_{followed_id}'
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group_room_name,
+            {
+                'type': 'send_message',
+                'message': f'用户 {user.nickname} 开始关注你啦！',
+            }
+        )
     user.save()
     return response(SUCCESS, msg)
 

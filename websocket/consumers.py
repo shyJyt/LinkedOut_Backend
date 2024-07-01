@@ -67,25 +67,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         # 处理接收到的消息
         # 可以在这里对接收到的消息进行处理，并根据需要执行相应的逻辑
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+        try:
+            text_data_json = json.loads(text_data)
+            message = text_data_json['message']
+            if not message:
+                await self.send(text_data=json.dumps({
+                    'error': 'No message key in the received data'
+                }))
+                return
 
-        print(f"User ID: {self.user_id}")
-        print(f"Target User ID: {self.target_user_id}")
-        print(message)
-        # 记录聊天内容
-        if self.mode == 'chat':
-            await self.save_chat_message(self.user_id, self.target_user_id, message)
+            print(f"User ID: {self.user_id}")
+            print(f"Target User ID: {self.target_user_id}")
+            print(message)
+            # 记录聊天内容
+            if self.mode == 'chat':
+                await self.save_chat_message(self.user_id, self.target_user_id, message)
 
-        # 发送消息到分组
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'send_message',
-                'message': message,
-                'obj_id': ''
-            }
-        )
+            # 发送消息到分组
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send_message',
+                    'message': message,
+                    'obj_id': ''
+                }
+            )
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({
+                'error': 'Invalid JSON'
+            }))
+        except KeyError as e:
+            await self.send(text_data=json.dumps({
+                'error': f'Missing key: {str(e)}'
+            }))
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'error': str(e)
+            }))
 
     # 从频道组接收到消息后执行方法
     async def send_message(self, event):

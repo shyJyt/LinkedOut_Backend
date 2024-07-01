@@ -57,7 +57,7 @@ def publish_activity(request):
     content = request.POST.get('content')
     if not title or not content:
         return response(PARAMS_ERROR, '请正确填入动态标题和内容！', error=True)
-    activity = UserActivity.objects.create(user=user, enterprise=enterprise, title=title, content=content)
+    UserActivity.objects.create(user=user, enterprise=enterprise, title=title, content=content)
     return response(SUCCESS, '动态发布成功！')
 
 
@@ -109,8 +109,20 @@ def delete_activity(request):
                 enterprise_user = EnterpriseUser.objects.get(user=user)
                 # 当前用户是该动态对应企业的管理员
                 if enterprise_user.role == 0 and enterprise_user.enterprise == activity.enter_id:
+                    send_message(user, activity.user, 0, act_id, '系统通知',
+                                 f'企业管理员 {user.nickname} 删除了你的动态')
+                    # 给被删除动态的用户发送消息
+                    deleted_id = activity.user.id
+                    group_room_name = f'system_message_{deleted_id}'
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        group_room_name,
+                        {
+                            'type': 'send_message',
+                            'message': f'企业管理员 {user.nickname} 删除了你的动态',
+                        }
+                    )
                     activity.delete()
-                    send_message(user, activity.user, 0, act_id, '系统通知', f'企业管理员 {user.nickname} 删除了你的动态')
                 else:
                     return response(PARAMS_ERROR, '没用该动态删除权限！', error=True)
             except EnterpriseUser.DoesNotExist:
@@ -143,15 +155,24 @@ def forward_activity(request):
         from_act = UserActivity.objects.get(id=from_act_id)
         # from_act是原创
         if not from_act.is_forward:
-            UserActivity.objects.create(user=user, enterprise=enterprise, from_act=from_act, is_forward=True,
-                                        title=title, content=content)
-            send_message(user, from_act.user, 3, from_act.id, '转发', f'用户 {user.nickname} 转发了你的动态')
-
+            from_user = from_act.user
         # from_act是转发动态
         else:
-            UserActivity.objects.create(user=user, enterprise=enterprise, from_act=from_act.from_act_id,
-                                        is_forward=True, title=title, content=content)
-            send_message(user, from_act.from_act.user, 3, from_act.from_act.id, '转发', f'用户 {user.nickname} 转发了你的动态')
+            from_user = from_act.from_act.user
+        UserActivity.objects.create(user=user, enterprise=enterprise, from_act=from_act, is_forward=True,
+                                    title=title, content=content)
+        send_message(user, from_user, 3, from_act.id, '转发', f'用户 {user.nickname} 转发了你的动态')
+        # 给被转载的用户发送消息
+        forwarded_id = from_user.id
+        group_room_name = f'system_message_{forwarded_id}'
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group_room_name,
+            {
+                'type': 'send_message',
+                'message': f'用户 {user.nickname} 转发了你的动态',
+            }
+        )
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '转发动态不存在！', error=True)
     return response(SUCCESS, '动态发布成功！')
@@ -208,6 +229,17 @@ def comment_activity(request):
         activity = UserActivity.objects.get(id=act_id)
         Comment.objects.create(user=user, activity=activity, content=content)
         send_message(user, activity.user, 2, activity.id, '评论', f'用户 {user.nickname} 评论了你的动态')
+        # 给被评论的用户发送消息
+        commented_id = activity.user.id
+        group_room_name = f'system_message_{commented_id}'
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group_room_name,
+            {
+                'type': 'send_message',
+                'message': f'用户 {user.nickname} 评论了你的动态',
+            }
+        )
     except UserActivity.DoesNotExist:
         return response(PARAMS_ERROR, '动态不存在！', error=True)
     return response(SUCCESS, '评论发布成功！')
@@ -255,9 +287,19 @@ def delete_comment(request):
                 enterprise_user = EnterpriseUser.objects.get(user=user)
                 # 当前用户是评论动态对应企业的管理员
                 if enterprise_user.role == 0 and enterprise_user.enterprise == comment.act_id.enter_id:
+                    send_message(user, comment.user, 0, comment_id, '系统通知', f'企业管理员 {user.nickname} 删除了你的评论')
+                    # 给被删除评论的用户发送消息
+                    deleted_id = comment.user.id
+                    group_room_name = f'system_message_{deleted_id}'
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        group_room_name,
+                        {
+                            'type': 'send_message',
+                            'message': f'企业管理员 {user.nickname} 删除了你的评论',
+                        }
+                    )
                     comment.delete()
-                    send_message(user, comment.user, 0, comment_id, '系统通知',
-                                 f'企业管理员 {user.nickname} 删除了你的评论')
                 else:
                     return response(PARAMS_ERROR, '无删除权限！', error=True)
             except EnterpriseUser.DoesNotExist:
@@ -315,4 +357,3 @@ def get_user_social_info(request):
         'following_list': following_list
     }
     return response(SUCCESS, '获取用户社交信息成功！', data=data)
-
