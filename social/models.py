@@ -53,6 +53,7 @@ class ChatMessage(models.Model):
     receiver = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE, related_name='received_messages')
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.sender} to {self.receiver}: {self.message[:50]}'

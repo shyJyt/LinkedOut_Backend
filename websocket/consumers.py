@@ -2,6 +2,7 @@ import datetime
 import json
 
 from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from enterprise.models import User
@@ -16,6 +17,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     self.channel_layer: 提供了 send(), group_send()和group_add() 3种方法,
     可以给单个频道或一个频道组发信息，还可以将一个频道加入到组。
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
         self.room_name = None
@@ -37,12 +39,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_name = f'{min(self.user_id, self.target_user_id)}_{max(self.user_id, self.target_user_id)}'
             self.room_group_name = f'private_chat_{self.room_name}'
         # 消息通知
-        else:
+        elif self.mode == 'single':
             user_id = self.scope['url_route']['kwargs']['user_id']
             # 每个用户的房间名用user_id标识
             self.room_name = user_id
             # 加入用户的系统组
             self.room_group_name = f'system_message_{user_id}'
+        else:
+            user_id = self.scope['url_route']['kwargs']['user_id']
+            self.room_name = user_id
+            self.room_group_name = f'chat_message_{user_id}'
 
         # 加入房间分组,一个用户一个组
         await self.channel_layer.group_add(
@@ -51,6 +57,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        # 检查未读消息并发送系统通知
+        if self.mode == 'chat':
+            user_id = self.user_id
+        else:
+            user_id = self.scope['url_route']['kwargs']['user_id']
+        unread_messages = await database_sync_to_async(
+            ChatMessage.objects.filter(receiver_id=user_id, is_read=False).count)()
+        if unread_messages > 0:
+            await self.send(text_data=json.dumps({
+                'message': f'你有 {unread_messages} 条未读消息'
+            }))
 
     async def disconnect(self, close_code):
         # 在断开连接时执行的操作
@@ -92,6 +110,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'obj_id': ''
                 }
             )
+
+            # 如果用户不在线通知目标用户有新消息
+            await self.notify_user(self.target_user_id)
+
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({
                 'error': 'Invalid JSON'
@@ -112,9 +134,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
         datetime_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         # 发送消息到 WebSocket
         await self.send(text_data=json.dumps({
-             'message': f'{datetime_str}:{message}',
-             'obj_id': obj_id,
+            'message': message,
+            'datetime': datetime_str,
+            'obj_id': obj_id,
         }))
+
+    async def notify_user(self, user_id):
+        # 检查用户是否在线，如果在线，发送系统通知
+        user_room_name = f'chat_message_{user_id}'
+        await self.channel_layer.group_send(
+            user_room_name,
+            {
+                'type': 'chat_message',
+                'message': '你收到了新消息'
+            }
+        )
 
     @sync_to_async
     def save_chat_message(self, sender_id, receiver_id, message):
