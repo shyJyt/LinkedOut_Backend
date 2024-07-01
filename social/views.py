@@ -4,7 +4,7 @@ from channels.layers import get_channel_layer
 
 from django.db import IntegrityError
 
-from enterprise.models import User, EnterpriseUser, Enterprise
+from enterprise.models import User, EnterpriseUser, Enterprise, Invitation, Transfer, PostRecruitment
 from social.models import UserActivity, Comment, Message
 from utils.qos import get_file, generate_time_stamp
 from utils.response import response
@@ -571,17 +571,33 @@ def get_message_list(request):
     user = request.user
     try:
         messages = Message.objects.filter(to_user=user).order_by('-create_time')
-        message_list = [
-            {
+        for message in messages:
+            message_list = []
+            # is_handled默认为True
+            is_handled = True
+            # 查找是否处理,如果有obj_id
+            if message.obj_id != '':
+                # (5，'邀请'),(6，'转让'),(7'录用')
+                if type == 5:
+                    is_handled = Invitation.objects.get(id=message.obj_id).is_handled
+                elif type == 6:
+                    is_handled = Transfer.objects.get(id=message.obj_id).is_handled
+                elif type == 7:
+                    if user in PostRecruitment.objects.get(id=message.obj_id).accepted_user.all():
+                        is_handled = False
+                    else:
+                        is_handled = True
+            message_ele = {
                 'from_user': message.from_user.nickname,
                 'type': message.get_type_display(),
                 'title': message.title,
                 'content': message.content,
                 'is_read': message.is_read,
                 'create_time': message.create_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'obj_id': message.obj_id if message.obj_id else '',
+                'is_handled': is_handled,
             }
-            for message in messages
-        ]
+            message_list.append(message_ele)
         return response(SUCCESS, '获取消息列表成功！', data=message_list)
     except Exception:
         return response(SERVER_ERROR, '获取消息列表失败！', error=True)

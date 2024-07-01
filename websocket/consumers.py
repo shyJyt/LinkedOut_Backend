@@ -82,17 +82,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 'type': 'send_message',
-                'message': message
+                'message': message,
+                'obj_id': ''
             }
         )
 
     # 从频道组接收到消息后执行方法
     async def send_message(self, event):
         message = event['message']
+        obj_id = event['obj_id']
         datetime_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         # 发送消息到 WebSocket
         await self.send(text_data=json.dumps({
-             'message': f'{datetime_str}:{message}'
+             'message': f'{datetime_str}:{message}',
+             'obj_id': obj_id,
         }))
 
     @sync_to_async

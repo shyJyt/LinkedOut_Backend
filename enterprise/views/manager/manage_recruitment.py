@@ -149,20 +149,18 @@ def hire(request):
     post_recruitment_ = PostRecruitment.objects.filter(id=post_id).first()
     if not post_recruitment_:
         return response(code=PARAMS_ERROR, msg='招聘信息不存在')
-    candidate = post_recruitment_.user.filter(id=candidate_id).first()
+    # 是否已经被录用
+    candidate = post_recruitment_.candidates.filter(id=candidate_id).first()
     if not candidate:
         return response(code=PARAMS_ERROR, msg='候选人不存在')
     # 是否是自己,即企业管理员
     if candidate == user:
         return response(code=PERMISSION_ERROR, msg='您不能录用自己')
-    # 是否已经被录用
-    if candidate in post_recruitment_.accepted_user.all():
-        return response(code=MYSQL_ERROR, msg='该用户已被录用')
     # 发送消息
     message_params = {
         'from_user': user,
         'to_user': candidate,
-        'type': 0,
+        'type': 7,
         'title': '录用信息',
         'content': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用',
         'obj_id': post_recruitment_.id,
@@ -178,7 +176,8 @@ def hire(request):
         group_room_name,
         {
             'type': 'send_message',
-            'message': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用'
+            'message': '恭喜你被公司' + str(user.enterprise_user.enterprise.name) + '录用',
+            'obj_id': post_recruitment_.id
         }
     )
 
@@ -187,8 +186,10 @@ def hire(request):
     number -= 1
     post_recruitment_.recruit_number = str(number)
     post_recruitment_.save()
-    # 将候选人添加到已录用人员中
+    # 将候选人添加到已录用人员中,并从应聘信息中删除
+    post_recruitment_: PostRecruitment
     post_recruitment_.accepted_user.add(candidate)
+    post_recruitment_.candidates.remove(candidate)
     post_recruitment_.save()
     # 将剩余的招聘人数返回
     return response(msg='发送成功', data={'recruit_number': post_recruitment_.recruit_number})

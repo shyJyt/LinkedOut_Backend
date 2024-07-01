@@ -31,17 +31,6 @@ def add_employee(request):
     # 不能邀请自己
     if employee == user:
         return response(code=PERMISSION_ERROR, msg='你不能邀请自己')
-    # 发送消息
-    message_params = {
-        'from_user': user,
-        'to_user': employee,
-        'type': 0,
-        'title': '邀请加入企业',
-        'content': '管理员邀请你加入企业' + str(user.enterprise_user.enterprise.name),
-        'obj_id': user.enterprise_user.enterprise.id,
-    }
-    message = Message.objects.create(**message_params)
-    message.save()
     # 创建邀请
     invitation_params = {
         'from_user': user,
@@ -50,6 +39,17 @@ def add_employee(request):
     }
     invitation = Invitation.objects.create(**invitation_params)
     invitation.save()
+    # 发送消息
+    message_params = {
+        'from_user': user,
+        'to_user': employee,
+        'type': 5,
+        'title': '邀请加入企业',
+        'content': '管理员邀请你加入企业' + str(user.enterprise_user.enterprise.name),
+        'obj_id': invitation.id,
+    }
+    message = Message.objects.create(**message_params)
+    message.save()
 
     # 给被邀请的用户发送消息
     employee_id = employee.id
@@ -59,7 +59,8 @@ def add_employee(request):
         group_room_name,
         {
             'type': 'send_message',
-            'message': '管理员邀请你加入企业'
+            'message': '管理员邀请你加入企业' + str(user.enterprise_user.enterprise.name),
+            'obj_id': invitation.id
         }
     )
 

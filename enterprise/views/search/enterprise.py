@@ -1,4 +1,4 @@
-from enterprise.models import Enterprise
+from enterprise.models import Enterprise, EnterpriseUser, User
 from utils.qos import get_file
 from utils.response import response
 from utils.status_code import *
@@ -42,9 +42,29 @@ def get_enterprise_info(request):
         return response(code=PARAMS_ERROR, msg='企业不存在')
     img_key = enterprise.img_url
     img_url = get_file(img_key)
-    data = {
+    # 获取企业员工列表,企业管理员排在第一位
+    employee_list = []
+    for employee in enterprise.enterpriseuser_set.all().order_by('role'):
+        employee: EnterpriseUser
+        employee_user = employee.user
+        employee_user: User
+        employee_avatar_key = employee_user.avatar_key
+        employee_avatar_url = get_file(employee_avatar_key)
+        employee_list.append({
+            'id': employee.id,
+            'real_name': employee.user.real_name,
+            'position': employee.position,
+            'work_age': employee.work_age,
+            'img_url': employee_avatar_url,
+        })
+    # 获取企业信息
+    enterprise_info = {
         'name': enterprise.name,
         'intro': enterprise.intro,
         'img_url': img_url
+    }
+    data = {
+        'enterprise_info': enterprise_info,
+        'employee_list': employee_list,
     }
     return response(data=data)
