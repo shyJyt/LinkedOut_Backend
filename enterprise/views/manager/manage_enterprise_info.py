@@ -85,7 +85,7 @@ def transfer_manager(request):
         'to_user': new_manager.user,
         'title': '企业管理员权限转让消息',
         'content': '您收到了一条企业管理员权限转让消息',
-        'type': 0,
+        'type': 6,
         'obj_id': transfer.id
     }
     message = Message(**message_params)
