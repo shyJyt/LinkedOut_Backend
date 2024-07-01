@@ -16,15 +16,14 @@ def get_recommend_recruit(request):
     """
     all_recruit_info_list = []
 
-    if request.user:
-        user = request.user
+    user = request.user
+
+    if user:
         user: User
         interested_posts = user.interested_post.all()
 
-        if len(interested_posts) == 0:
-            return response(PARAMS_ERROR, '还未填写意向岗位！', error=True)
-
-        
+    if user and len(interested_posts) > 0:
+        # 用户已填写意向岗位
         for post in interested_posts:
             recruit_info_list = []
             recruit_info_res = PostRecruitment.objects.filter(post=post).all()
@@ -52,7 +51,7 @@ def get_recommend_recruit(request):
                 'recruit_info_list': recruit_info_list  
             })
     else:
-        # 游客
+        # 游客 / 未填写意向岗位的用户
         # 获取所有的招聘信息
         recruit_info_res = PostRecruitment.objects.all()
         ids = []

@@ -11,13 +11,14 @@ class UserActivity(models.Model):
     is_forward = models.BooleanField(default=False)
     title = models.CharField(max_length=50)
     content = models.TextField()
+    images = models.JSONField(default=list)
     like = models.ManyToManyField(to='enterprise.User', related_name='like_user_activity')
     create_time = models.DateTimeField(auto_now_add=True)
 
     def to_string(self):
         return {
-            'user_id': self.user_id.id,
-            'enter_id': self.enter_id.id,
+            'user_id': self.user.id,
+            'enter_id': self.enterprise.id,
             'title': self.title,
             'content': self.content,
             'is_forward': self.is_forward,
@@ -45,3 +46,14 @@ class Message(models.Model):
     content = models.TextField()
     is_read = models.BooleanField(default=False)
     create_time = models.DateTimeField(auto_now_add=True)
+
+
+class ChatMessage(models.Model):
+    sender = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(to='enterprise.User', on_delete=models.CASCADE, related_name='received_messages')
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.sender} to {self.receiver}: {self.message[:50]}'

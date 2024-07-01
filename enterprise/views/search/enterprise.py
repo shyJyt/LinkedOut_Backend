@@ -2,7 +2,7 @@ from enterprise.models import Enterprise, EnterpriseUser, User
 from utils.qos import get_file
 from utils.response import response
 from utils.status_code import *
-from utils.view_decorator import allowed_methods
+from utils.view_decorator import allowed_methods, guest_and_user
 
 
 @allowed_methods(['GET'])
@@ -29,6 +29,7 @@ def search_enterprise(request):
 
 
 @allowed_methods(['GET'])
+@guest_and_user
 def get_enterprise_info(request):
     """
     获取企业信息
@@ -61,8 +62,13 @@ def get_enterprise_info(request):
     enterprise_info = {
         'name': enterprise.name,
         'intro': enterprise.intro,
-        'img_url': img_url
+        'img_url': img_url,
+        'is_follow': False,
     }
+    # 用户关注情况
+    user = request.user
+    if user and user.follow_enterprise.filter(id=enterprise.id).exists():
+        enterprise_info['is_follow'] = True  # 如果用户已登录且关注企业，is_follow=True
     data = {
         'enterprise_info': enterprise_info,
         'employee_list': employee_list,
