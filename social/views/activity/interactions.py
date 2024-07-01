@@ -357,3 +357,29 @@ def get_user_social_info(request):
         'following_list': following_list
     }
     return response(SUCCESS, '获取用户社交信息成功！', data=data)
+
+
+@allowed_methods(['GET'])
+@guest_and_user
+def get_follow_enterprise(request):
+    """
+    获取用户关注企业
+    :param request:
+    :return: [code, msg, data] 企业的id，name，avatar
+    """
+    user = request.user
+    following_count = user.follow_enterprise.count()
+    followings = user.follow_enterprise.all()
+    following_list = []
+    for following in followings:
+        follow_info = {
+            'enter_id': following.id,
+            'enter_name': following.name,
+            'logo_img': get_file(following.img_url)
+        }
+        following_list.append(follow_info)
+    data = {
+        'following_count': following_count,
+        'following_list': following_list,
+    }
+    return response(SUCCESS, '获取用户关注企业成功！', data=data)

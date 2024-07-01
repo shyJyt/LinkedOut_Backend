@@ -84,3 +84,16 @@ def guest_and_user(view_func):
             return view_func(request, *args, **kwargs)
 
     return _wrapped_view
+
+
+def get_user_from_token(token):
+    if token:
+        value = get_value(token)
+        if value:
+            email = value.get('email', None)
+            try:
+                user = User.objects.get(email=email, is_active=True)
+                return user
+            except User.DoesNotExist:
+                return None
+    return None

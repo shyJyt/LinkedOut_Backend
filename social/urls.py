@@ -22,6 +22,7 @@ urlpatterns = [
     path('update_comment/', update_comment, name='update_comment'),
     path('delete_comment/', delete_comment, name='delete_comment'),
     path('get_user_social_info/', get_user_social_info, name='get_user_social_info'),
+    path('get_follow_enterprise/', get_follow_enterprise, name='get_follow_enterprise'),
     path('get_message_list/', get_message_list, name='get_message_list'),
     path('check_message/', check_message, name='check_message'),
     path('follow_user/', follow_user, name='follow_user'),
