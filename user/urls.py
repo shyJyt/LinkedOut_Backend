@@ -19,5 +19,6 @@ urlpatterns = [
     path('getAllPost', search.get_all_post),
 
     path('optimizeResume', others.optimize_resume),
-    path('reduceGptLimit', others.reduce_gpt_limit)
+    path('reduceGptLimit', others.reduce_gpt_limit),
+    path('getPdfContent', others.get_pdf_content),
 ]

@@ -94,10 +94,9 @@ def delete_file(key: str) -> bool:
     bucket = BucketManager(q)
     ret, info = bucket.delete(BUCKET_NAME, key)
     if ret:
-        assert ret == {}
-        return True
-    else:
+        print(f'删除失败:{ret}\n{info}')
         return False
+    return True
 
 
 if __name__ == '__main__':
