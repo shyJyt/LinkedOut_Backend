@@ -69,7 +69,10 @@ def get_pdf_content(request):
 def reduce_gpt_limit(request):
     user = request.user
     user: User
-    user.gpt_limit = user.gpt_limit - 1
-    user.save()
+    if user.gpt_limit > 0:
+        user.gpt_limit = user.gpt_limit - 1
+        user.save()
+    else:
+        return response(PARAMS_ERROR, '简历优化次数不足！', error=True)
 
     return response(SUCCESS, '减少简历优化次数成功！')
