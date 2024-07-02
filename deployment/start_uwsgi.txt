@@ -1,0 +1,24 @@
+buaalogin
+
+cd /home/buaa/LinkedOut_Backend
+echo $(pwd)
+
+# conda
+conda activate LinkedOut
+
+# stop previous service
+sudo pkill -f uwsgi -9
+sudo pkill -f dephne -9
+
+# get latest version
+git checkout dev
+git pull
+
+# migrate
+python manage.py makemigrations
+python manage.py migrate
+
+# start uwsgi
+cd /home/buaa/LinkedOut_Deployment/backend
+echo $(pwd)
+uwsgi --ini ./uwsgi/uwsgi.ini
