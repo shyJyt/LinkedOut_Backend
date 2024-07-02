@@ -22,7 +22,6 @@ class User(models.Model):
     github_link = models.CharField(max_length=100, null=True)
     resume_key = models.CharField(max_length=100, null=True)
     gpt_limit = models.IntegerField(default=10)
-    code = models.CharField(max_length=50, null=True)
 
     enterprise_user = models.OneToOneField('enterprise.EnterpriseUser', on_delete=models.CASCADE, null=True,
                                            related_name='user')

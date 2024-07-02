@@ -1,5 +1,6 @@
 import re
 import os
+from django.core.cache import cache
 
 from enterprise.models import User
 
@@ -61,13 +62,15 @@ def register(request):
         re_str = r"^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$"
         if not re.match(re_str, email):
             return response(PARAMS_ERROR, "邮箱格式错误！", error=True)
-        if User.objects.filter(email=email):
+        if User.objects.filter(email=email, is_active=True):
             return response(PARAMS_ERROR, "邮箱已注册过！", error=True)
         if password != password_repeat:
             return response(PARAMS_ERROR, "两次密码不一致！", error=True)
         # 发送邮件
         try:
             code = send_email(email)
+            # 存入 redis
+            cache.set(email, code, timeout=60 * 2)
         except Exception:
             return response(PARAMS_ERROR, "发送邮件失败！", error=True)
 
@@ -81,10 +84,14 @@ def register(request):
             "nickname": nickname,
             "real_name": real_name,
             "password": password_encode,
-            "salt": salt,
-            "code": code,
+            "salt": salt
         }
-        User.objects.create(**default_fields)
+        # 之前注册过但未激活
+        if User.objects.filter(email=email):
+            User.objects.filter(email=email).update(**default_fields)
+        # 全新用户
+        else:
+            User.objects.create(**default_fields)
 
         return response(SUCCESS, "请注意查收邮件！")
     else:
@@ -109,7 +116,13 @@ def active_user(request):
 
         try:
             user = User.objects.get(email=email, is_active=False)
-            if get_code == user.code:
+            correct_code = cache.get(email)
+            # print(correct_code, get_code, type(correct_code), type(get_code))
+            if not correct_code:
+                return response(PARAMS_ERROR, "验证码已过期", error=True)
+            if get_code == str(correct_code):
+                # 验证成功后删除验证码
+                cache.delete(email)
                 # 激活用户并保存
                 user.is_active = True
                 user.save()
