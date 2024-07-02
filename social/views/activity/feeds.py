@@ -4,6 +4,7 @@ from utils.response import response
 from utils.status_code import *
 from utils.qos import get_file
 from utils.view_decorator import allowed_methods, guest_and_user
+from django.db.models import Count
 
 
 @allowed_methods(['GET'])
@@ -175,10 +176,15 @@ def get_homepage_activity_list(request):
     :return: [code, msg, data] 其中data为发布动态者的头像，昵称，兴趣岗位，学历，动态发布时间，标题，内容，点赞收藏数，评论列表
     """
     user = request.user
-    try:
-        activities = UserActivity.objects.order_by('-like')
-    except UserActivity.DoesNotExist:
-        return response(SUCCESS, '获取用户动态列表成功！', data=[])
+    if user:
+        followed_users_activities = UserActivity.objects.filter(user__in=user.follow_user.all())
+        followed_enterprises_activities = UserActivity.objects.filter(enterprise__in=user.follow_enterprise.all())
+        high_like_activities = UserActivity.objects.annotate(like_count=Count('like')).order_by('-like_count')
+        activities = followed_users_activities | followed_enterprises_activities | high_like_activities
+        activities = activities.distinct().annotate(like_count=Count('like')).order_by('-like_count')[:10]
+    else:
+        activities = UserActivity.objects.annotate(like_count=Count('like')).order_by('-like_count')[:10]
+
     activity_list = []
     for activity in activities:
         # 动态发布者信息
@@ -224,7 +230,7 @@ def get_homepage_activity_list(request):
             else:
                 activity_detail['from_activity'] = None
         activity_list.append(activity_detail)
-    return response(SUCCESS, '获取用户动态列表成功！', data=activity_list)
+    return response(SUCCESS, '获取首页推荐动态列表成功！', data=activity_list)
 
 
 @allowed_methods(['GET'])
