@@ -12,7 +12,7 @@ def search_user(request):
     """
     keyword = request.GET.get('keyword', None)
     if keyword:
-        res_users = User.objects.filter(nickname__contains=keyword)
+        res_users = User.objects.filter(nickname__contains=keyword, is_active=True)
         user_list = []
 
         user = request.user
