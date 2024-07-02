@@ -119,11 +119,10 @@ def get_resume(request):
     candidate = Candidate.objects.filter(post_recruitment_id=post_recruitment_id, user_id=user_id).first()
     if not candidate:
         return response(code=PARAMS_ERROR, msg='用户未应聘此岗位')
-    resume_key = get_file(candidate.resume_key)
-    resume_url = get_file(resume_key)
+    resume_url = get_file(candidate.resume_key)
     # 返回简历url
     if resume_url == '':
-        return response(code=SERVER_ERROR, msg='获取简历失败')
+        return response(code=SERVER_ERROR, msg='获取简历失败', error=True, data=None)
     data = {
         'resume_url': resume_url
     }

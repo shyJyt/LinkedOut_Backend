@@ -47,6 +47,9 @@ def send_resume(request):
                 f.write(chunk)
         if not upload_file(resume_key, 'Static/' + resume_key):
             return response(code=MYSQL_ERROR, msg='上传简历失败')
+        # 删除本地文件
+        import os
+        os.remove('Static/' + resume_key)
     # 记录应聘人员
     post_recruitment: PostRecruitment
     post_recruitment.candidates.add(user, through_defaults={'resume_key': resume_key})
