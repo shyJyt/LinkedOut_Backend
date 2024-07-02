@@ -39,18 +39,18 @@ def get_message_list(request):
     user = request.user
     try:
         messages = Message.objects.filter(to_user=user).order_by('-create_time')
+        message_list = []
         for message in messages:
-            message_list = []
             # is_handled默认为True
             is_handled = True
             # 查找是否处理,如果有obj_id
             if message.obj_id != '':
                 # (5，'邀请'),(6，'转让'),(7'录用')
-                if type == 5:
+                if message.type == 5:
                     is_handled = Invitation.objects.get(id=message.obj_id).is_handled
-                elif type == 6:
+                elif message.type == 6:
                     is_handled = Transfer.objects.get(id=message.obj_id).is_handled
-                elif type == 7:
+                elif message.type == 7:
                     if user in PostRecruitment.objects.get(id=message.obj_id).accepted_user.all():
                         is_handled = False
                     else:
