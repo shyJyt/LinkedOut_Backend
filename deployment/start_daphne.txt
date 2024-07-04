@@ -1,0 +1,11 @@
+buaalogin
+
+# activate conda venv
+conda activate LinkedOut
+
+
+sudo pkill -f dephne -9
+
+# start daphne
+cd /home/buaa/LinkedOut_Backend
+daphne LinkedOut_Backend.asgi:application -p 8001

@@ -6,13 +6,24 @@ __pycache__
 db.sqlite3
 media
 config.py
+test.py
+sonar-command.bat
 */migrations
- 
+
+# sonar
+.scannerwork
+
+# qiniu
+.qiniu_pythonsdk_hostscache.json
+
 # Backup files #
 *.bak
  
 # If you are using PyCharm #
 .idea
+
+# If you are using Visual Studio Code #
+.vscode
  
 # Python #
 *.py[cod]
@@ -93,3 +104,6 @@ Control.ca-list
 Control.ca-bundle
 Control.system-ca-bundle
 GitHub.sublime-settings
+/utils/manage_migrations.py
+/tempFile/
+/Static/
